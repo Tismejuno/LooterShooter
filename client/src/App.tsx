@@ -49,14 +49,18 @@ function App() {
   const [showCanvas, setShowCanvas] = useState(false);
   const [webglSupported, setWebglSupported] = useState(true);
 
-  // Check WebGL support
+  // Check WebGL support (prefer webgl2, fallback to webgl, then experimental-webgl)
   useEffect(() => {
     try {
       const canvas = document.createElement('canvas');
-      const context = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+      const context = canvas.getContext('webgl2') || 
+                     canvas.getContext('webgl') || 
+                     canvas.getContext('experimental-webgl');
       if (!context) {
         setWebglSupported(false);
         console.warn('WebGL not supported');
+      } else {
+        console.log('WebGL supported:', context.constructor.name);
       }
     } catch (e) {
       setWebglSupported(false);

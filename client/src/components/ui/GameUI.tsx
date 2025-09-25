@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { usePlayer } from "../../lib/stores/usePlayer";
 import { useGame } from "../../lib/stores/useGame";
 import { useKeyboardControls } from "@react-three/drei";
@@ -7,7 +7,7 @@ import SkillTree from "./SkillTree";
 import Minimap from "./Minimap";
 
 export default function GameUI() {
-  const [, getKeys] = useKeyboardControls();
+  const [subscribe, getKeys] = useKeyboardControls();
   const [showInventory, setShowInventory] = useState(false);
   const [showSkills, setShowSkills] = useState(false);
   const { phase } = useGame();
@@ -22,14 +22,30 @@ export default function GameUI() {
     stats
   } = usePlayer();
 
-  // Handle UI toggle keys
-  const keys = getKeys();
-  if (keys.inventory && !showInventory) {
-    setShowInventory(true);
-  }
-  if (keys.skills && !showSkills) {
-    setShowSkills(true);
-  }
+  // Handle UI toggle keys with useEffect to avoid render-time state updates
+  useEffect(() => {
+    const unsubscribe = subscribe(
+      (state) => state.inventory,
+      (inventoryPressed) => {
+        if (inventoryPressed && !showInventory) {
+          setShowInventory(true);
+        }
+      }
+    );
+    return unsubscribe;
+  }, [subscribe, showInventory]);
+
+  useEffect(() => {
+    const unsubscribe = subscribe(
+      (state) => state.skills,
+      (skillsPressed) => {
+        if (skillsPressed && !showSkills) {
+          setShowSkills(true);
+        }
+      }
+    );
+    return unsubscribe;
+  }, [subscribe, showSkills]);
 
   return (
     <div style={{ 
