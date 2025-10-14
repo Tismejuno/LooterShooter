@@ -6,7 +6,7 @@ interface LootState {
   items: LootItem[];
   
   // Actions
-  spawnLoot: (position: Position, rarity?: string) => void;
+  spawnLoot: (position: Position, rarity?: 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary') => void;
   removeItem: (itemId: string) => void;
   generateRandomLoot: (position: Position, playerLevel: number) => void;
 }
@@ -93,7 +93,7 @@ export const useLoot = create<LootState>((set, get) => ({
     const { spawnLoot } = get();
     
     // Determine rarity based on player level and random chance
-    let rarity = 'common';
+    let rarity: 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary' = 'common';
     const roll = Math.random() * 100;
     
     // Higher level players have better chances for rare items

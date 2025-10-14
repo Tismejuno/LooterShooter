@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { LootItem, Projectile, Position, Stats } from "../gameTypes";
+import { LootItem, Projectile, Position, Stats, Spell, StatusEffect } from "../gameTypes";
 
 interface PlayerState {
   // Basic stats
@@ -13,6 +13,11 @@ interface PlayerState {
   experienceToNext: number;
   skillPoints: number;
   
+  // Currency
+  gold: number;
+  essence: number;
+  crystals: number;
+  
   // Player stats
   stats: Stats;
   
@@ -22,6 +27,13 @@ interface PlayerState {
   
   // Skills
   skills: Record<string, number>;
+  
+  // Spells
+  spells: Spell[];
+  equippedSpells: string[]; // Spell IDs in quick slots
+  
+  // Status effects
+  statusEffects: StatusEffect[];
   
   // Combat
   projectiles: Projectile[];
@@ -34,12 +46,20 @@ interface PlayerState {
   gainExperience: (amount: number) => void;
   attack: () => void;
   castAbility: (abilityId: number) => void;
+  castSpell: (spellId: string) => void;
   collectItem: (item: LootItem) => void;
   equipItem: (item: LootItem) => void;
   unequipItem: (itemId: string) => void;
   allocateSkillPoint: (skillId: string) => void;
   removeProjectile: (projectileId: string) => void;
   regenerate: () => void;
+  addGold: (amount: number) => void;
+  removeGold: (amount: number) => boolean;
+  addStatusEffect: (effect: StatusEffect) => void;
+  updateStatusEffects: (deltaTime: number) => void;
+  upgradeSpell: (spellId: string) => boolean;
+  equipSpell: (spellId: string, slot: number) => void;
+  useConsumable: (item: LootItem) => void;
 }
 
 let projectileIdCounter = 0;
@@ -56,6 +76,11 @@ export const usePlayer = create<PlayerState>((set, get) => ({
   experienceToNext: 100,
   skillPoints: 0,
   
+  // Currency
+  gold: 100,
+  essence: 0,
+  crystals: 0,
+  
   stats: {
     strength: 10,
     dexterity: 10,
@@ -66,6 +91,22 @@ export const usePlayer = create<PlayerState>((set, get) => ({
   inventory: [],
   equipped: [],
   skills: {},
+  
+  // Spells
+  spells: [
+    {
+      id: 'fireball',
+      name: 'Fireball',
+      level: 1,
+      manaCost: 20,
+      cooldown: 3000,
+      damage: 30,
+      element: 'fire'
+    }
+  ],
+  equippedSpells: ['fireball', '', '', ''],
+  
+  statusEffects: [],
   projectiles: [],
   lastAttackTime: 0,
   lastAbilityTime: {},
@@ -266,6 +307,136 @@ export const usePlayer = create<PlayerState>((set, get) => ({
         health: Math.min(state.maxHealth, state.health + regenAmount),
         mana: Math.min(state.maxMana, state.mana + manaRegenAmount)
       };
+    });
+  },
+
+  addGold: (amount) => {
+    set((state) => ({
+      gold: state.gold + amount
+    }));
+  },
+
+  removeGold: (amount) => {
+    const state = get();
+    if (state.gold >= amount) {
+      set({ gold: state.gold - amount });
+      return true;
+    }
+    return false;
+  },
+
+  addStatusEffect: (effect) => {
+    set((state) => ({
+      statusEffects: [...state.statusEffects, effect]
+    }));
+  },
+
+  updateStatusEffects: (deltaTime) => {
+    set((state) => {
+      let damageTotal = 0;
+      const updatedEffects: StatusEffect[] = [];
+      
+      state.statusEffects.forEach(effect => {
+        const newDuration = effect.duration - deltaTime * 1000;
+        
+        if (newDuration > 0) {
+          if (effect.type === 'burn' || effect.type === 'poison') {
+            damageTotal += effect.value * (deltaTime / 1000);
+          }
+          
+          updatedEffects.push({
+            ...effect,
+            duration: newDuration
+          });
+        }
+      });
+      
+      return {
+        statusEffects: updatedEffects,
+        health: Math.max(0, state.health - damageTotal)
+      };
+    });
+  },
+
+  castSpell: (spellId) => {
+    const state = get();
+    const spell = state.spells.find(s => s.id === spellId);
+    if (!spell) return;
+    
+    const now = Date.now();
+    const lastCast = (state.lastAbilityTime as Record<string, number>)[spellId] || 0;
+    
+    if (now - lastCast < spell.cooldown) return;
+    if (state.mana < spell.manaCost) return;
+    
+    const projectileId = `spell_${spellId}_${++projectileIdCounter}`;
+    const element = spell.element === 'holy' ? 'arcane' : spell.element; // Convert holy to arcane for projectile
+    const projectile: Projectile = {
+      id: projectileId,
+      position: { ...state.position },
+      direction: { x: 0, y: 0, z: -1 },
+      speed: 15,
+      damage: spell.damage || 0,
+      active: true,
+      element
+    };
+    
+    set((state) => ({
+      projectiles: [...state.projectiles, projectile],
+      mana: state.mana - spell.manaCost,
+      lastAbilityTime: { ...state.lastAbilityTime, [spellId]: now }
+    }));
+  },
+
+  upgradeSpell: (spellId) => {
+    const state = get();
+    const spell = state.spells.find(s => s.id === spellId);
+    if (!spell) return false;
+    
+    const upgradeCost = 100 * spell.level;
+    if (state.gold < upgradeCost) return false;
+    
+    set((state) => ({
+      spells: state.spells.map(s =>
+        s.id === spellId
+          ? {
+              ...s,
+              level: s.level + 1,
+              damage: s.damage ? s.damage + 10 : undefined,
+              manaCost: Math.max(5, s.manaCost - 2)
+            }
+          : s
+      ),
+      gold: state.gold - upgradeCost
+    }));
+    
+    return true;
+  },
+
+  equipSpell: (spellId, slot) => {
+    set((state) => {
+      const newEquipped = [...state.equippedSpells];
+      newEquipped[slot] = spellId;
+      return { equippedSpells: newEquipped };
+    });
+  },
+
+  useConsumable: (item) => {
+    if (item.type !== 'potion' && item.type !== 'scroll' && item.type !== 'consumable') return;
+    
+    set((state) => {
+      const updates: Partial<PlayerState> = {
+        inventory: state.inventory.filter(i => i.id !== item.id)
+      };
+      
+      // Apply consumable effects
+      if (item.effect === 'restore_health') {
+        updates.health = Math.min(state.maxHealth, state.health + (item.stats?.power || 50));
+      } else if (item.effect === 'restore_mana') {
+        updates.mana = Math.min(state.maxMana, state.mana + (item.stats?.power || 30));
+      }
+      
+      return updates;
     });
   }
 }));
