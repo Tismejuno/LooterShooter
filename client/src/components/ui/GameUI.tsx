@@ -5,11 +5,17 @@ import { useKeyboardControls } from "@react-three/drei";
 import Inventory from "./Inventory";
 import SkillTree from "./SkillTree";
 import Minimap from "./Minimap";
+import SpellBook from "./SpellBook";
+import Shop from "./Shop";
+import Convert from "./Convert";
 
 export default function GameUI() {
   const [subscribe, getKeys] = useKeyboardControls();
   const [showInventory, setShowInventory] = useState(false);
   const [showSkills, setShowSkills] = useState(false);
+  const [showSpells, setShowSpells] = useState(false);
+  const [showShop, setShowShop] = useState(false);
+  const [showConvert, setShowConvert] = useState(false);
   const { phase } = useGame();
   const { 
     health, 
@@ -19,7 +25,8 @@ export default function GameUI() {
     level, 
     experience, 
     experienceToNext,
-    stats
+    stats,
+    gold
   } = usePlayer();
 
   // Handle UI toggle keys with useEffect to avoid render-time state updates
@@ -170,6 +177,84 @@ export default function GameUI() {
         <div style={{ marginTop: '10px', fontSize: '12px', color: '#888' }}>
           Damage: {stats.strength * 2 + 10}
         </div>
+        <div style={{ 
+          marginTop: '12px', 
+          paddingTop: '10px', 
+          borderTop: '1px solid #444',
+          fontSize: '16px',
+          color: '#ffcc00',
+          fontWeight: 'bold'
+        }}>
+          💰 {gold} Gold
+        </div>
+      </div>
+
+      {/* Quick Access Menu */}
+      <div style={{
+        position: 'absolute',
+        top: '20px',
+        left: '50%',
+        transform: 'translateX(-50%)',
+        display: 'flex',
+        gap: '10px',
+        pointerEvents: 'auto'
+      }}>
+        <button
+          onClick={() => setShowSpells(true)}
+          style={{
+            backgroundColor: '#6c63ff',
+            border: '2px solid #8883ff',
+            color: '#fff',
+            padding: '8px 16px',
+            borderRadius: '6px',
+            cursor: 'pointer',
+            fontSize: '12px',
+            fontWeight: 'bold',
+            transition: 'all 0.2s'
+          }}
+          onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#8883ff'}
+          onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#6c63ff'}
+        >
+          ✨ Spells
+        </button>
+        
+        <button
+          onClick={() => setShowShop(true)}
+          style={{
+            backgroundColor: '#8b7355',
+            border: '2px solid #a08060',
+            color: '#fff',
+            padding: '8px 16px',
+            borderRadius: '6px',
+            cursor: 'pointer',
+            fontSize: '12px',
+            fontWeight: 'bold',
+            transition: 'all 0.2s'
+          }}
+          onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#a08060'}
+          onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#8b7355'}
+        >
+          🏪 Shop
+        </button>
+        
+        <button
+          onClick={() => setShowConvert(true)}
+          style={{
+            backgroundColor: '#6c63ff',
+            border: '2px solid #8883ff',
+            color: '#fff',
+            padding: '8px 16px',
+            borderRadius: '6px',
+            cursor: 'pointer',
+            fontSize: '12px',
+            fontWeight: 'bold',
+            transition: 'all 0.2s'
+          }}
+          onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#8883ff'}
+          onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#6c63ff'}
+        >
+          ⚗️ Convert
+        </button>
       </div>
 
       {/* Controls help */}
@@ -207,6 +292,18 @@ export default function GameUI() {
       
       {showSkills && (
         <SkillTree onClose={() => setShowSkills(false)} />
+      )}
+      
+      {showSpells && (
+        <SpellBook onClose={() => setShowSpells(false)} />
+      )}
+      
+      {showShop && (
+        <Shop onClose={() => setShowShop(false)} />
+      )}
+      
+      {showConvert && (
+        <Convert onClose={() => setShowConvert(false)} />
       )}
 
       {/* Game phase indicator */}
