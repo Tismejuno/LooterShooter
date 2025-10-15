@@ -27,6 +27,32 @@ python3 looter_shooter_dungeon.py --level 3 --count 5 --stats
 python3 looter_shooter_dungeon.py --level 5 --seed 42 --visualize
 ```
 
+### looter_shooter_game.py
+
+A Python utility for game mechanics simulation and testing. This script provides:
+- Combat system simulation with damage calculation and status effects
+- Loot generation system with multiple rarity tiers
+- Complete dungeon run simulations with enemies and loot
+- Player progression and stats testing
+
+**Usage:**
+```bash
+# Simulate combat between player and enemy
+python3 looter_shooter_game.py --simulate-combat --player-level 5 --enemy-level 5
+
+# Generate random loot items
+python3 looter_shooter_game.py --generate-loot --rarity rare --count 5
+
+# Simulate a complete dungeon run
+python3 looter_shooter_game.py --simulate-dungeon-run --player-level 10 --dungeon-level 5
+
+# Export results to JSON file
+python3 looter_shooter_game.py --simulate-dungeon-run --player-level 15 --dungeon-level 3 --export results.json
+
+# Use a seed for reproducible results
+python3 looter_shooter_game.py --generate-loot --rarity legendary --seed 42
+```
+
 ### dungeon_integration.py
 
 A command-line interface for the Node.js/TypeScript backend to interact with the Python dungeon generator. This module enables server-side dungeon generation via subprocess calls.
