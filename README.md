@@ -27,4 +27,51 @@ python3 looter_shooter_dungeon.py --level 3 --count 5 --stats
 python3 looter_shooter_dungeon.py --level 5 --seed 42 --visualize
 ```
 
+### dungeon_integration.py
+
+A command-line interface for the Node.js/TypeScript backend to interact with the Python dungeon generator. This module enables server-side dungeon generation via subprocess calls.
+
+**Usage:**
+```bash
+# Generate a dungeon and output JSON
+python3 dungeon_integration.py --level 5
+
+# Generate with a specific seed for reproducibility
+python3 dungeon_integration.py --level 10 --seed 42
+
+# Generate with validation
+python3 dungeon_integration.py --level 3 --validate
+
+# Generate compact JSON (no indentation)
+python3 dungeon_integration.py --level 7 --compact
+```
+
+**API Endpoint:**
+
+The server provides a REST API endpoint for dungeon generation:
+
+```bash
+# Generate a dungeon via HTTP POST
+curl -X POST http://localhost:5000/api/dungeon/generate \
+  -H "Content-Type: application/json" \
+  -d '{"level": 5, "seed": 42}'
+```
+
+**Response Format:**
+```json
+{
+  "rooms": [...],
+  "corridors": [...],
+  "traps": [...],
+  "spawnPoints": [...],
+  "walls": [...],
+  "level": 5,
+  "metadata": {
+    "num_rooms": 5,
+    "num_traps": 7,
+    "num_spawn_points": 12
+  }
+}
+```
+
 See full feature documentation in [FEATURES.md](FEATURES.md).
