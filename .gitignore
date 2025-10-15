@@ -1,11 +1,18 @@
-<<<<<<< HEAD
-node_modules
+# Dependency directories
+node_modules/
+jspm_packages/
+
+# Build output
 dist
-.DS_Store
 server/public
-vite.config.ts.*
-*.tar.gz
-=======
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
 # Logs
 logs
 *.log
@@ -45,10 +52,6 @@ bower_components
 # Compiled binary addons (https://nodejs.org/api/addons.html)
 build/Release
 
-# Dependency directories
-node_modules/
-jspm_packages/
-
 # Snowpack dependency directory (https://snowpack.dev/)
 web_modules/
 
@@ -69,6 +72,7 @@ web_modules/
 
 # Output of 'npm pack'
 *.tgz
+*.tar.gz
 
 # Yarn Integrity file
 .yarn-integrity
@@ -88,7 +92,6 @@ out
 
 # Nuxt.js build / generate output
 .nuxt
-dist
 
 # Gatsby files
 .cache/
@@ -101,7 +104,6 @@ dist
 
 # vuepress v2.x temp and cache directory
 .temp
-.cache
 
 # Sveltekit cache directory
 .svelte-kit/
@@ -145,4 +147,7 @@ dist
 # Vite logs files
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
->>>>>>> 1ce9a4810332e27ec090815cfdd0794f9c89cd0a
+
+# macOS
+.DS_Store
+
