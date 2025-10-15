@@ -10,8 +10,8 @@ This script can be used for:
 - Balancing dungeon difficulty and layout
 
 Usage:
-    python looter-shooter-dungeon.py --level 5 --visualize
-    python looter-shooter-dungeon.py --level 10 --export dungeon.json
+    python looter_shooter_dungeon.py --level 5 --visualize
+    python looter_shooter_dungeon.py --level 10 --export dungeon.json
 """
 
 import json
@@ -435,13 +435,13 @@ def main():
         epilog="""
 Examples:
   Generate and visualize a level 5 dungeon:
-    python looter-shooter-dungeon.py --level 5 --visualize
+    python looter_shooter_dungeon.py --level 5 --visualize
   
   Generate and export a level 10 dungeon to JSON:
-    python looter-shooter-dungeon.py --level 10 --export dungeon.json
+    python looter_shooter_dungeon.py --level 10 --export dungeon.json
   
   Generate multiple dungeons with statistics:
-    python looter-shooter-dungeon.py --level 3 --count 5 --stats
+    python looter_shooter_dungeon.py --level 3 --count 5 --stats
         """
     )
     
