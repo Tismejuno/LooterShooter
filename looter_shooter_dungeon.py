@@ -5,13 +5,15 @@ LooterShooter Dungeon Generator
 A Python implementation of the dungeon generation system for the LooterShooter game.
 This script can be used for:
 - Testing dungeon generation algorithms
-- Visualizing dungeon layouts
+- Visualizing dungeon layouts (ASCII and 3D)
 - Generating dungeon configurations for import into the game
 - Balancing dungeon difficulty and layout
 
 Usage:
     python looter_shooter_dungeon.py --level 5 --visualize
+    python looter_shooter_dungeon.py --level 5 --render3d
     python looter_shooter_dungeon.py --level 10 --export dungeon.json
+    python looter_shooter_dungeon.py --level 7 --render3d-output dungeon_render.png
 """
 
 import json
@@ -20,6 +22,10 @@ import random
 import argparse
 from typing import List, Dict, Tuple, Any
 from dataclasses import dataclass, asdict
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
+from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+import numpy as np
 
 
 @dataclass
@@ -381,6 +387,200 @@ def visualize_dungeon(dungeon: Dict[str, Any], output_file: str = None):
     return result
 
 
+def render_3d_dungeon(dungeon: Dict[str, Any], output_file: str = None, show: bool = True):
+    """
+    Create a 3D visualization of the dungeon layout using matplotlib
+    
+    Args:
+        dungeon: Dungeon data dictionary
+        output_file: Optional file to save the 3D render to
+        show: Whether to display the interactive 3D plot (default: True)
+    """
+    rooms = dungeon['rooms']
+    walls = dungeon['walls']
+    corridors = dungeon['corridors']
+    traps = dungeon['traps']
+    spawn_points = dungeon['spawnPoints']
+    
+    # Create 3D figure
+    fig = plt.figure(figsize=(14, 10))
+    ax = fig.add_subplot(111, projection='3d')
+    
+    # Set labels and title
+    ax.set_xlabel('X Position', fontsize=10)
+    ax.set_ylabel('Z Position', fontsize=10)
+    ax.set_zlabel('Y Height', fontsize=10)
+    ax.set_title(f'Dungeon Level {dungeon["level"]} - 3D Visualization', fontsize=14, fontweight='bold')
+    
+    # Draw floor plane
+    x_min = min([r['x'] - r['width']/2 for r in rooms]) - 5
+    x_max = max([r['x'] + r['width']/2 for r in rooms]) + 5
+    z_min = min([r['z'] - r['height']/2 for r in rooms]) - 5
+    z_max = max([r['z'] + r['height']/2 for r in rooms]) + 5
+    
+    xx, zz = np.meshgrid([x_min, x_max], [z_min, z_max])
+    yy = np.zeros_like(xx)
+    ax.plot_surface(xx, zz, yy, alpha=0.1, color='green')
+    
+    # Draw room floors
+    for room in rooms:
+        x_center = room['x']
+        z_center = room['z']
+        width = room['width']
+        height = room['height']
+        
+        # Create floor vertices
+        x_coords = [x_center - width/2, x_center + width/2, x_center + width/2, x_center - width/2]
+        z_coords = [z_center - height/2, z_center - height/2, z_center + height/2, z_center + height/2]
+        y_coords = [0.05, 0.05, 0.05, 0.05]
+        
+        # Draw floor
+        vertices = [list(zip(x_coords, z_coords, y_coords))]
+        
+        # Color based on room type
+        if room['type'] == 'spawn':
+            color = 'lightblue'
+            alpha = 0.6
+        elif room['type'] == 'boss':
+            color = 'red'
+            alpha = 0.6
+        elif room['type'] == 'treasure':
+            color = 'gold'
+            alpha = 0.6
+        else:
+            color = 'gray'
+            alpha = 0.4
+        
+        poly = Poly3DCollection(vertices, alpha=alpha, facecolor=color, edgecolor='black', linewidths=1)
+        ax.add_collection3d(poly)
+        
+        # Add room label
+        ax.text(x_center, z_center, 0.1, room['type'][0].upper(), 
+                fontsize=8, ha='center', va='center', weight='bold')
+    
+    # Draw walls
+    for wall in walls:
+        x = wall['x']
+        z = wall['z']
+        w = wall['width']
+        h = wall['height']
+        d = wall['depth']
+        
+        # Create box vertices for walls
+        # Bottom face
+        x_coords = [x - w/2, x + w/2, x + w/2, x - w/2]
+        z_coords = [z - d/2, z - d/2, z + d/2, z + d/2]
+        y_coords = [0, 0, 0, 0]
+        vertices_bottom = [list(zip(x_coords, z_coords, y_coords))]
+        
+        # Top face
+        y_coords = [h, h, h, h]
+        vertices_top = [list(zip(x_coords, z_coords, y_coords))]
+        
+        # Side faces
+        # Front face
+        x_coords = [x - w/2, x + w/2, x + w/2, x - w/2]
+        z_coords = [z - d/2, z - d/2, z - d/2, z - d/2]
+        y_coords = [0, 0, h, h]
+        vertices_front = [list(zip(x_coords, z_coords, y_coords))]
+        
+        # Back face
+        z_coords = [z + d/2, z + d/2, z + d/2, z + d/2]
+        vertices_back = [list(zip(x_coords, z_coords, y_coords))]
+        
+        # Left face
+        x_coords = [x - w/2, x - w/2, x - w/2, x - w/2]
+        z_coords = [z - d/2, z + d/2, z + d/2, z - d/2]
+        vertices_left = [list(zip(x_coords, z_coords, y_coords))]
+        
+        # Right face
+        x_coords = [x + w/2, x + w/2, x + w/2, x + w/2]
+        vertices_right = [list(zip(x_coords, z_coords, y_coords))]
+        
+        # Add all faces
+        for vertices in [vertices_bottom, vertices_top, vertices_front, vertices_back, vertices_left, vertices_right]:
+            poly = Poly3DCollection(vertices, alpha=0.7, facecolor='brown', edgecolor='black', linewidths=0.5)
+            ax.add_collection3d(poly)
+    
+    # Draw corridors as thin floor planes
+    for corridor in corridors:
+        start_x = corridor['start']['x']
+        start_z = corridor['start']['z']
+        end_x = corridor['end']['x']
+        end_z = corridor['end']['z']
+        width = corridor['width']
+        
+        # Calculate perpendicular direction for corridor width
+        dx = end_x - start_x
+        dz = end_z - start_z
+        length = math.sqrt(dx**2 + dz**2)
+        if length > 0:
+            # Perpendicular unit vector
+            perp_x = -dz / length * width / 2
+            perp_z = dx / length * width / 2
+            
+            # Create corridor vertices
+            x_coords = [
+                start_x + perp_x, start_x - perp_x,
+                end_x - perp_x, end_x + perp_x
+            ]
+            z_coords = [
+                start_z + perp_z, start_z - perp_z,
+                end_z - perp_z, end_z + perp_z
+            ]
+            y_coords = [0.03, 0.03, 0.03, 0.03]
+            
+            vertices = [list(zip(x_coords, z_coords, y_coords))]
+            poly = Poly3DCollection(vertices, alpha=0.5, facecolor='lightgray', edgecolor='gray', linewidths=0.5)
+            ax.add_collection3d(poly)
+    
+    # Draw traps as red markers
+    trap_positions = [(t['position']['x'], t['position']['z'], 0.5) for t in traps]
+    if trap_positions:
+        trap_x, trap_z, trap_y = zip(*trap_positions)
+        ax.scatter(trap_x, trap_z, trap_y, c='red', marker='^', s=100, label='Traps', edgecolors='darkred')
+    
+    # Draw spawn points as enemy markers
+    spawn_positions = [(sp['position']['x'], sp['position']['z'], 0.5) for sp in spawn_points]
+    if spawn_positions:
+        spawn_x, spawn_z, spawn_y = zip(*spawn_positions)
+        ax.scatter(spawn_x, spawn_z, spawn_y, c='purple', marker='o', s=80, label='Enemies', edgecolors='darkviolet')
+    
+    # Set axis limits
+    ax.set_xlim([x_min, x_max])
+    ax.set_ylim([z_min, z_max])
+    ax.set_zlim([0, 6])
+    
+    # Add legend
+    ax.legend(loc='upper right', fontsize=9)
+    
+    # Add stats text box
+    stats_text = (
+        f"Rooms: {dungeon['metadata']['num_rooms']}\n"
+        f"Traps: {dungeon['metadata']['num_traps']}\n"
+        f"Enemies: {dungeon['metadata']['num_spawn_points']}"
+    )
+    ax.text2D(0.02, 0.98, stats_text, transform=ax.transAxes,
+             fontsize=9, verticalalignment='top',
+             bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.8))
+    
+    # Set viewing angle for better visualization
+    ax.view_init(elev=25, azim=45)
+    
+    # Save if output file specified
+    if output_file:
+        plt.savefig(output_file, dpi=150, bbox_inches='tight')
+        print(f"3D visualization saved to {output_file}")
+    
+    # Show interactive plot
+    if show:
+        plt.show()
+    else:
+        plt.close()
+    
+    return fig
+
+
 def export_dungeon(dungeon: Dict[str, Any], filename: str):
     """Export dungeon data to JSON file"""
     with open(filename, 'w') as f:
@@ -437,11 +637,20 @@ Examples:
   Generate and visualize a level 5 dungeon:
     python looter_shooter_dungeon.py --level 5 --visualize
   
+  Generate and render a level 5 dungeon in 3D:
+    python looter_shooter_dungeon.py --level 5 --render3d
+  
+  Generate and save 3D render to file:
+    python looter_shooter_dungeon.py --level 5 --render3d-output dungeon.png
+  
   Generate and export a level 10 dungeon to JSON:
     python looter_shooter_dungeon.py --level 10 --export dungeon.json
   
   Generate multiple dungeons with statistics:
     python looter_shooter_dungeon.py --level 3 --count 5 --stats
+  
+  Generate with both ASCII and 3D visualization:
+    python looter_shooter_dungeon.py --level 7 --visualize --render3d
         """
     )
     
@@ -456,6 +665,19 @@ Examples:
         '--visualize', '-v',
         action='store_true',
         help='Display ASCII visualization of the dungeon'
+    )
+    
+    parser.add_argument(
+        '--render3d', '-r',
+        action='store_true',
+        help='Display 3D visualization of the dungeon'
+    )
+    
+    parser.add_argument(
+        '--render3d-output', '-ro',
+        type=str,
+        metavar='FILE',
+        help='Save 3D render to image file (e.g., dungeon.png)'
     )
     
     parser.add_argument(
@@ -504,6 +726,19 @@ Examples:
         
         if args.visualize:
             visualize_dungeon(dungeon)
+        
+        if args.render3d or args.render3d_output:
+            output_file = None
+            if args.render3d_output:
+                output_file = args.render3d_output
+                if args.count > 1:
+                    # Add number to filename for multiple renders
+                    base, ext = output_file.rsplit('.', 1) if '.' in output_file else (output_file, 'png')
+                    output_file = f"{base}_{i + 1}.{ext}"
+            
+            # Don't show interactive plot if we're generating multiple dungeons
+            show_plot = args.render3d and args.count == 1
+            render_3d_dungeon(dungeon, output_file, show=show_plot)
         
         if args.export:
             filename = args.export
