@@ -100,4 +100,91 @@ curl -X POST http://localhost:5000/api/dungeon/generate \
 }
 ```
 
+### looter_shooter_integration.py
+
+A command-line interface for the Node.js/TypeScript backend to interact with the Python game mechanics. This module enables server-side game simulation via subprocess calls.
+
+**Usage:**
+```bash
+# Generate loot items
+python3 looter_shooter_integration.py --action generate-loot --level 5 --count 3 --rarity rare
+
+# Simulate combat
+python3 looter_shooter_integration.py --action simulate-combat --player-level 10 --enemy-level 8 --enemy-type orc
+
+# Simulate a complete dungeon run
+python3 looter_shooter_integration.py --action simulate-dungeon --player-level 15 --dungeon-level 10
+
+# Use seed for reproducibility
+python3 looter_shooter_integration.py --action generate-loot --level 5 --seed 42 --compact
+```
+
+**API Endpoints:**
+
+The server provides REST API endpoints for game mechanics:
+
+1. **Generate Loot:**
+```bash
+curl -X POST http://localhost:5000/api/game/generate-loot \
+  -H "Content-Type: application/json" \
+  -d '{"level": 5, "count": 3, "rarity": "rare"}'
+```
+
+Response:
+```json
+{
+  "items": [
+    {
+      "id": "item_1234",
+      "name": "Sharp Sword",
+      "type": "weapon",
+      "rarity": "rare",
+      "stats": {"damage": 40},
+      "value": 150
+    }
+  ]
+}
+```
+
+2. **Simulate Combat:**
+```bash
+curl -X POST http://localhost:5000/api/game/simulate-combat \
+  -H "Content-Type: application/json" \
+  -d '{"playerLevel": 10, "enemyLevel": 8, "enemyType": "orc"}'
+```
+
+Response:
+```json
+{
+  "player": {...},
+  "enemy": {...},
+  "combat": {
+    "victory": true,
+    "rounds": 3,
+    "finalPlayerHealth": 180,
+    "finalEnemyHealth": 0,
+    "combatLog": [...]
+  }
+}
+```
+
+3. **Simulate Dungeon Run:**
+```bash
+curl -X POST http://localhost:5000/api/game/simulate-dungeon \
+  -H "Content-Type: application/json" \
+  -d '{"playerLevel": 15, "dungeonLevel": 10}'
+```
+
+Response:
+```json
+{
+  "success": true,
+  "enemiesDefeated": 13,
+  "lootCollected": [...],
+  "finalStats": {...},
+  "totalGold": 1500,
+  "totalExperience": 450
+}
+```
+
 See full feature documentation in [FEATURES.md](FEATURES.md).
