@@ -563,8 +563,8 @@ export default function Enemy({ enemy }: EnemyProps) {
     moveEnemy(enemy.id, newPos);
     groupRef.current.position.set(newPos.x, newPos.y, newPos.z);
 
-    // Face direction of movement
-    if (dist > 1.5) {
+    // Face direction of movement (use small threshold only to avoid jitter at exact overlap)
+    if (dist > 0.1) {
       const angle = Math.atan2(direction.x, direction.z);
       groupRef.current.rotation.y = angle;
     }

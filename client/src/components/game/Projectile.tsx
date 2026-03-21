@@ -106,11 +106,7 @@ export default function Projectile({ projectile }: ProjectileProps) {
         }
       });
 
-      // Remove projectile if it travels too far
-      const distance = Math.sqrt(
-        (newPos.x - projectile.position.x) ** 2 +
-        (newPos.z - projectile.position.z) ** 2
-      );
+      // Remove projectile if it travels too far from origin
       const totalDist = Math.sqrt(newPos.x ** 2 + newPos.z ** 2);
       if (totalDist > 35) {
         removeProjectile(projectile.id);

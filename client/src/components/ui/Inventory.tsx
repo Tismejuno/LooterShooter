@@ -2,6 +2,8 @@ import { usePlayer } from "../../lib/stores/usePlayer";
 import { LootItem } from "../../lib/gameTypes";
 import { useState } from "react";
 
+const MAX_INVENTORY_SIZE = 30;
+
 interface InventoryProps {
   onClose: () => void;
 }
@@ -321,7 +323,7 @@ export default function Inventory({ onClose }: InventoryProps) {
             <h2 style={{ margin: 0, color: '#ffaa00', fontSize: '20px', fontWeight: 'bold', letterSpacing: '1px' }}>
               INVENTORY
             </h2>
-            <span style={{ color: '#666', fontSize: '13px' }}>({inventory.length}/30)</span>
+            <span style={{ color: '#666', fontSize: '13px' }}>({inventory.length}/{MAX_INVENTORY_SIZE})</span>
           </div>
           <button
             onClick={onClose}
