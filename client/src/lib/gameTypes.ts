@@ -23,15 +23,35 @@ export interface Enemy {
   lastAttackTime: number;
 }
 
+export type ItemType =
+  | 'weapon'
+  | 'armor'
+  | 'consumable'
+  | 'potion'
+  | 'scroll'
+  | 'gem'
+  | 'rune'
+  | 'relic'
+  | 'blueprint'
+  | 'material'
+  | 'accessory'
+  | 'offhand'
+  | 'grenade'
+  | 'food'
+  | 'artifact';
+
 export interface LootItem {
   id: string;
   name: string;
-  type: 'weapon' | 'armor' | 'consumable' | 'potion' | 'scroll';
+  type: ItemType;
   rarity: 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
   position: Position;
   stats?: Record<string, number>;
   value?: number; // Sell value
-  effect?: string; // For potions/scrolls
+  effect?: string; // For potions/scrolls/consumables
+  description?: string; // Flavour text / lore
+  socketSlots?: number; // For items that support gem sockets
+  socketedGems?: string[]; // Gem IDs socketed into this item
 }
 
 export interface Projectile {

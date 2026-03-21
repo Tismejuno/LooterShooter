@@ -8,6 +8,8 @@ import { useEnemies } from "./lib/stores/useEnemies";
 import { useDungeon } from "./lib/stores/useDungeon";
 import { useLoot } from "./lib/stores/useLoot";
 import { usePlayer } from "./lib/stores/usePlayer";
+import { useDailyLogin } from "./lib/stores/useDailyLogin";
+import { useStory } from "./lib/stores/useStory";
 import GameScene from "./components/game/GameScene";
 import GameUI from "./components/ui/GameUI";
 // Using default system fonts instead of @fontsource/inter
@@ -47,6 +49,8 @@ function App() {
   const { generateLevel } = useDungeon();
   const { generateRandomLoot } = useLoot();
   const { level } = usePlayer();
+  const { checkDailyLogin } = useDailyLogin();
+  const { unlockZonesForLevel: unlockZones } = useStory();
   const [showCanvas, setShowCanvas] = useState(false);
   const [webglSupported, setWebglSupported] = useState(true);
 
@@ -91,8 +95,14 @@ function App() {
       
       // Start the game
       start();
+
+      // Check daily login reward
+      checkDailyLogin();
+
+      // Unlock story zones for starting level
+      unlockZones(1);
     }
-  }, [webglSupported, generateLevel, spawnWave, generateRandomLoot, start]);
+  }, [webglSupported, generateLevel, spawnWave, generateRandomLoot, start, checkDailyLogin, unlockZones]);
 
   // Initialize audio
   useEffect(() => {

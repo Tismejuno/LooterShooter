@@ -1,4 +1,4 @@
-import { LootItem, Position } from "./gameTypes";
+import { LootItem, Position, ItemType } from "./gameTypes";
 
 export interface ItemModifier {
   stat: string;
@@ -14,62 +14,458 @@ export interface LootTable {
 
 let itemIdCounter = 0;
 
-export class LootSystem {
-  private static itemPrefixes = {
-    weapon: [
-      'Sharp', 'Keen', 'Brutal', 'Swift', 'Deadly', 'Ancient', 'Cursed', 'Blessed',
-      'Vengeful', 'Divine', 'Frostbitten', 'Volcanic', 'Crystal', 'Stormborn',
-      'Verdant', 'Glacial', 'Infernal', 'Celestial', 'Arcane', 'Thunderous',
-    ],
-    armor: [
-      'Sturdy', 'Light', 'Heavy', 'Reinforced', 'Magical', 'Dragon', 'Shadow',
-      'Holy', 'Ethereal', 'Titan', 'Frozen', 'Ember', 'Cloudweave', 'Crystalline',
-      'Mossgrown', 'Volcanic', 'Stormforged', 'Astral', 'Verdant', 'Glacial',
-    ],
-    potion: ['Minor', 'Lesser', 'Greater', 'Major', 'Superior', 'Divine', 'Ancient', 'Crystalline'],
-    scroll: ['Scroll of', 'Tome of', 'Grimoire of', 'Codex of', 'Tablet of'],
-  };
+// ─── ITEM DATABASES ─────────────────────────────────────────────────────────
 
-  private static itemTypes = {
-    weapon: [
-      'Sword', 'Axe', 'Bow', 'Staff', 'Dagger', 'Mace', 'Spear', 'Hammer', 'Wand',
-      'Frostblade', 'Lava Shard', 'Cloud Scepter', 'Crystal Shiv', 'Vine Whip',
-      'Snowflake Shuriken', 'Ember Lance', 'Skybow', 'Glacial Cleaver', 'Thornbark Club',
-    ],
-    armor: [
-      'Helmet', 'Chestplate', 'Boots', 'Gauntlets', 'Shield', 'Cloak', 'Belt', 'Ring',
-      'Frost Mantle', 'Lava Plate', 'Cloud Shroud', 'Crystal Carapace', 'Bark Buckler',
-      'Snow Veil', 'Ember Greaves', 'Sky Pendant', 'Glacial Cuirass', 'Thornwood Circlet',
-    ],
-    potion: [
-      'Health Potion', 'Mana Potion', 'Strength Elixir', 'Defense Tonic', 'Speed Draught',
-      'Frost Essence', 'Lava Extract', 'Cloud Dew', 'Crystal Tincture', 'Nature Brew',
-    ],
-    scroll: [
-      'Fireball', 'Lightning', 'Ice Storm', 'Healing', 'Teleportation', 'Summoning',
-      'Blizzard', 'Eruption', 'Skyfall', 'Crystal Spire', 'Nature Surge', 'Thunder Clap',
-    ],
+const WEAPONS = {
+  // Swords
+  swords: [
+    'Broadsword', 'Longsword', 'Shortsword', 'Katana', 'Rapier', 'Claymore',
+    'Gladius', 'Falchion', 'Scimitar', 'Bastard Sword', 'Zweihänder', 'Saber'
+  ],
+  // Axes
+  axes: [
+    'Battleaxe', 'Hatchet', 'Greataxe', 'War Axe', 'Moon Blade',
+    'Splitting Axe', 'Bearded Axe', 'Throwing Axe'
+  ],
+  // Bows
+  bows: [
+    'Shortbow', 'Longbow', 'Crossbow', 'War Bow', "Hunter's Bow",
+    'Recurve Bow', 'Composite Bow', 'Siege Crossbow'
+  ],
+  // Staffs
+  staffs: [
+    'Fire Staff', 'Ice Staff', 'Thunder Staff', 'Arcane Staff',
+    'Nature Staff', 'Death Staff', 'Holy Staff', 'Shadow Wand',
+    'Crystal Scepter', 'Dragon Bone Staff'
+  ],
+  // Daggers
+  daggers: [
+    'Stiletto', 'Kris', 'Dirk', 'Kukri', 'Shiv',
+    'Throwing Knife', 'Assassin Blade', 'Venom Fang'
+  ],
+  // Hammers / Maces
+  hammers: [
+    'War Hammer', 'Maul', 'Flanged Mace', 'Morning Star', 'Club',
+    'Great Maul', 'Spiked Club', 'Bone Crusher'
+  ],
+  // Spears / Polearms
+  spears: [
+    'Javelin', 'Trident', 'Pike', 'Halberd', 'Glaive',
+    'Partisan', 'Ranseur', 'War Scythe'
+  ],
+  // Special / Elemental
+  special: [
+    'Frostblade', 'Lava Shard', 'Cloud Scepter', 'Crystal Shiv',
+    'Vine Whip', 'Ember Lance', 'Skybow', 'Glacial Cleaver',
+    'Thornbark Club', 'Void Reaver', 'Storm Herald', 'Soul Striker'
+  ],
+};
+
+const WEAPON_NAMES_FLAT = [
+  ...WEAPONS.swords, ...WEAPONS.axes, ...WEAPONS.bows, ...WEAPONS.staffs,
+  ...WEAPONS.daggers, ...WEAPONS.hammers, ...WEAPONS.spears, ...WEAPONS.special,
+];
+
+const ARMOR_TYPES = {
+  helmets: [
+    'Iron Helm', "Knight's Visor", "Ranger's Hood", "Mage's Hat", 'Dark Cowl',
+    'Barbute Helmet', 'Bascinet', 'War Mask', 'Crystal Crown', 'Serpent Helm'
+  ],
+  chestplates: [
+    'Chainmail', 'Plate Armor', 'Leather Vest', 'Robe of Power', 'Scale Mail',
+    'Brigandine', 'Full Plate', 'Shadow Wraith Coat', 'Dragon Scale Cuirass', 'Void Mantle'
+  ],
+  boots: [
+    'Iron Boots', 'Swift Boots', 'Shadowstep Boots', "Mage's Slippers",
+    'Greaves of Haste', 'Stone Boots', 'Winged Sandals', 'Dark Leather Treads'
+  ],
+  gauntlets: [
+    'Iron Gauntlets', 'Spiked Gloves', 'Mage Wraps', 'Dragon Claw Gauntlets',
+    'Shadow Grip', 'Holy Vambraces', 'Battle Mitts', 'Crystal Knuckles'
+  ],
+  shields: [
+    'Buckler', 'Tower Shield', 'Dragon Shield', 'Magic Barrier',
+    'Kite Shield', 'Heater Shield', 'Round Shield', 'Aegis Fragment'
+  ],
+  cloaks: [
+    'Shadow Cloak', 'Wind Cloak', 'Ember Cloak', 'Frost Mantle',
+    'Verdant Cape', "Assassin's Shroud", 'Celestial Veil', 'Bone Mantle'
+  ],
+  belts: [
+    'War Belt', 'Scout Belt', 'Mystic Sash', 'Titan Girdle',
+    'Shadow Wrap', 'Battle Harness', 'Enchanted Cord', 'Dragon Leather Belt'
+  ],
+};
+
+const ARMOR_NAMES_FLAT = [
+  ...ARMOR_TYPES.helmets, ...ARMOR_TYPES.chestplates, ...ARMOR_TYPES.boots,
+  ...ARMOR_TYPES.gauntlets, ...ARMOR_TYPES.shields, ...ARMOR_TYPES.cloaks,
+  ...ARMOR_TYPES.belts,
+];
+
+const ACCESSORIES = [
+  // Rings
+  'Ring of Strength', 'Ring of Wisdom', 'Ring of Vitality', 'Death Ring',
+  'Fire Ring', 'Frost Band', 'Thunder Loop', 'Shadow Ring', 'Crystal Ring',
+  // Necklaces / Amulets
+  'Amulet of Power', 'Pendant of Arcane', 'Necklace of Fortune',
+  'Dragon Tooth Pendant', "Sage's Medallion", 'Blood Amulet',
+  // Bracelets
+  'Iron Bracelet', 'Crystal Bracelet', 'Shadow Bracelet', 'Holy Bangle',
+];
+
+const OFFHAND_ITEMS = [
+  // Orbs
+  'Fire Orb', 'Ice Orb', 'Lightning Orb', 'Shadow Orb', 'Void Orb',
+  // Tomes
+  'Ancient Tome', 'Battle Tome', 'Mystic Grimoire', 'Codex of Shadows',
+  // Quivers
+  'Iron Quiver', 'Poison Quiver', 'Flame Quiver', 'Enchanted Quiver',
+];
+
+const POTIONS = [
+  // Health
+  'Minor Health Potion', 'Health Potion', 'Greater Health Potion', 'Superior Health Flask',
+  'Elixir of Life', 'Crimson Draught',
+  // Mana
+  'Minor Mana Potion', 'Mana Potion', 'Greater Mana Potion', 'Arcane Brew', 'Crystal Elixir',
+  // Buffs
+  'Potion of Strength', 'Potion of Haste', 'Potion of Fortitude', 'Potion of Clarity',
+  'Rage Potion', "Berserker's Brew", 'Invisibility Draught', 'Dragon Blood Tonic',
+  // Antidotes / Cures
+  'Antidote', 'Cure Poison Flask', 'Thawing Draught',
+];
+
+const FOOD_ITEMS = [
+  'Roasted Meat', 'Hearty Stew', 'Elven Bread', 'Dragon Fruit',
+  'Mushroom Soup', 'Sweet Berry', 'Combat Ration', 'Blessed Feast',
+  'Hunter\'s Jerky', 'Crystal Spring Water', 'Mana Biscuit', 'Ancient Herb Tea',
+];
+
+const SCROLLS = [
+  // Attack
+  'Scroll of Fireball', 'Scroll of Lightning', 'Scroll of Ice Storm',
+  'Scroll of Chain Lightning', 'Scroll of Meteor Strike', 'Scroll of Frost Nova',
+  // Utility
+  'Scroll of Teleportation', 'Scroll of Town Portal', 'Scroll of Identify',
+  'Scroll of Mapping', 'Scroll of Escape',
+  // Buffs
+  'Scroll of Fortification', 'Scroll of Blessing', 'Scroll of War Cry',
+  // Summon
+  'Scroll of Summoning', 'Scroll of Undead Army', 'Scroll of Elemental',
+  // Area
+  'Scroll of Blizzard', 'Scroll of Eruption', 'Scroll of Thunder Storm',
+];
+
+const GRENADES = [
+  'Fire Bomb', 'Frost Grenade', 'Thunder Orb', 'Poison Flask',
+  'Smoke Bomb', 'Holy Grenade', 'Arcane Cluster', 'Void Shard Grenade',
+];
+
+const GEMS = [
+  'Ruby', 'Sapphire', 'Emerald', 'Diamond', 'Topaz',
+  'Amethyst', 'Opal', 'Obsidian Gem', 'Pearl', 'Moonstone',
+  'Sunstone', 'Voidite Crystal', 'Frost Jewel', 'Ember Stone',
+];
+
+const RUNES = [
+  'Rune of Strength', 'Rune of Defense', 'Rune of Speed', 'Rune of Fire',
+  'Rune of Ice', 'Rune of Thunder', 'Rune of Life', 'Rune of Death',
+  'Rune of Power', 'Rune of the Void', 'Ancient Rune Shard',
+];
+
+const MATERIALS = [
+  'Iron Ore', 'Steel Ingot', 'Dragon Scale', 'Phoenix Feather',
+  'Ancient Wood', 'Crystal Shard', 'Shadow Essence', 'Holy Dust',
+  'Mana Crystal', 'Void Shard', 'Enchanted Leather', 'Mythril Flake',
+  'Frozen Tear', 'Lava Core Fragment', 'Star Dust',
+];
+
+const RELICS = [
+  'Ancient Relic', 'Cursed Artifact', 'Sacred Idol', 'Dragon Egg',
+  'Timeless Piece', 'Void Crystal', 'Forsaken Idol', 'Celestial Compass',
+];
+
+const BLUEPRINTS = [
+  'Blueprint: Iron Sword', 'Blueprint: Chainmail', 'Blueprint: Fire Staff',
+  'Blueprint: Dragon Shield', 'Blueprint: Legendary Axe', 'Blueprint: Arcane Orb',
+  'Blueprint: Shadow Dagger', 'Blueprint: Holy Armor',
+];
+
+const ARTIFACTS = [
+  'Heart of the Dragon', 'Eye of the Storm', 'Soul Lantern',
+  'Crown of the Fallen King', 'Gauntlet of Eternity',
+  'Orb of Infinite Knowledge', 'Shattered God Fragment', "Void Reaper's Essence",
+];
+
+const LEGENDARY_UNIQUES = [
+  'Excalibur', 'Mjolnir', 'Aegis', 'Gungnir', 'Durandal',
+  'Frostmourne', 'Sulfuras', 'Ashbringer', 'Thunderfury',
+  "Ner'zhul's Chillblade", 'The Lava Core', 'Heart of the Crystal Cavern',
+  "Zephyr's Cloud Mantle", 'Verdant Crown of the Forest',
+  "Voidwalker's Shroud", 'The Eternal Flame', "Titan's Last Stand",
+  "Shadowmeld Dagger", 'Worldbreaker', 'Starfall Bow',
+];
+
+// ─── PREFIXES / SUFFIXES ─────────────────────────────────────────────────────
+
+const WEAPON_PREFIXES = [
+  'Sharp', 'Keen', 'Brutal', 'Swift', 'Deadly', 'Ancient', 'Cursed', 'Blessed',
+  'Vengeful', 'Divine', 'Frostbitten', 'Volcanic', 'Crystal', 'Stormborn',
+  'Verdant', 'Glacial', 'Infernal', 'Celestial', 'Arcane', 'Thunderous',
+  'Voidtouched', 'Serrated', 'Bloodied', 'Shadowforged', 'Heroic',
+];
+
+const ARMOR_PREFIXES = [
+  'Sturdy', 'Light', 'Heavy', 'Reinforced', 'Magical', 'Dragon', 'Shadow',
+  'Holy', 'Ethereal', 'Titan', 'Frozen', 'Ember', 'Cloudweave', 'Crystalline',
+  'Mossgrown', 'Volcanic', 'Stormforged', 'Astral', 'Verdant', 'Glacial',
+  'Void-tempered', 'Warded', 'Runed', 'Nightforged', 'Sunblessed',
+];
+
+// ─── RARITY CONFIG ───────────────────────────────────────────────────────────
+
+const RARITY_VALUES = {
+  common:    { multiplier: 1,   color: '#ffffff', sellValue: 10  },
+  uncommon:  { multiplier: 1.5, color: '#1eff00', sellValue: 25  },
+  rare:      { multiplier: 2,   color: '#0070dd', sellValue: 50  },
+  epic:      { multiplier: 3,   color: '#a335ee', sellValue: 100 },
+  legendary: { multiplier: 5,   color: '#ff8000', sellValue: 250 },
+};
+
+// ─── EFFECT MAPPING ──────────────────────────────────────────────────────────
+
+function deriveEffect(type: ItemType, name: string): string {
+  if (type === 'potion') {
+    if (name.includes('Health') || name.includes('Life') || name.includes('Crimson')) return 'restore_health';
+    if (name.includes('Mana') || name.includes('Arcane') || name.includes('Crystal Elixir')) return 'restore_mana';
+    if (name.includes('Strength')) return 'boost_strength';
+    if (name.includes('Fortitude') || name.includes('Defense')) return 'boost_defense';
+    if (name.includes('Haste') || name.includes('Speed')) return 'boost_speed';
+    if (name.includes('Rage') || name.includes('Berserker')) return 'boost_attack';
+    if (name.includes('Clarity')) return 'boost_intelligence';
+    if (name.includes('Invisibility')) return 'invisibility';
+    if (name.includes('Dragon Blood')) return 'dragon_blood';
+    if (name.includes('Antidote') || name.includes('Cure') || name.includes('Thawing')) return 'cure_status';
+    return 'restore_health';
+  }
+  if (type === 'food') {
+    if (name.includes('Meat') || name.includes('Stew') || name.includes('Ration') || name.includes('Jerky')) return 'restore_health';
+    if (name.includes('Mana') || name.includes('Crystal') || name.includes('Tea')) return 'restore_mana';
+    if (name.includes('Berry') || name.includes('Fruit')) return 'regen_both';
+    if (name.includes('Feast')) return 'full_restore';
+    return 'restore_health';
+  }
+  if (type === 'scroll') {
+    if (name.includes('Fireball')) return 'cast_fireball';
+    if (name.includes('Lightning') || name.includes('Chain Lightning')) return 'cast_lightning';
+    if (name.includes('Ice') || name.includes('Blizzard') || name.includes('Frost')) return 'cast_ice_storm';
+    if (name.includes('Healing') || name.includes('Blessing')) return 'cast_heal';
+    if (name.includes('Teleportation') || name.includes('Escape')) return 'cast_teleport';
+    if (name.includes('Town Portal')) return 'cast_town_portal';
+    if (name.includes('Summon') || name.includes('Elemental')) return 'cast_summon';
+    if (name.includes('Eruption') || name.includes('Meteor')) return 'cast_eruption';
+    if (name.includes('Thunder') || name.includes('Storm')) return 'cast_thunderstorm';
+    if (name.includes('Fortification') || name.includes('War Cry')) return 'cast_fortify';
+    if (name.includes('Undead')) return 'cast_undead';
+    if (name.includes('Identify') || name.includes('Mapping')) return 'utility';
+    return 'unknown';
+  }
+  if (type === 'grenade') {
+    if (name.includes('Fire')) return 'grenade_fire';
+    if (name.includes('Frost') || name.includes('Ice')) return 'grenade_frost';
+    if (name.includes('Thunder') || name.includes('Void')) return 'grenade_thunder';
+    if (name.includes('Poison')) return 'grenade_poison';
+    if (name.includes('Smoke')) return 'grenade_smoke';
+    if (name.includes('Holy')) return 'grenade_holy';
+    return 'grenade_generic';
+  }
+  if (type === 'gem') return 'socket_gem';
+  if (type === 'rune') return 'enchant_rune';
+  if (type === 'material') return 'crafting_material';
+  if (type === 'blueprint') return 'learn_recipe';
+  return 'unknown';
+}
+
+// ─── STAT GENERATION ─────────────────────────────────────────────────────────
+
+function generateStats(
+  type: ItemType,
+  rarity: LootItem['rarity'],
+  playerLevel: number
+): Record<string, number> {
+  const stats: Record<string, number> = {};
+  const mul = RARITY_VALUES[rarity].multiplier * (1 + playerLevel * 0.1);
+  const r = () => Math.random();
+
+  switch (type) {
+    case 'weapon':
+      stats.strength = Math.floor((3 + r() * 7) * mul);
+      if (r() < 0.4) stats.dexterity = Math.floor((2 + r() * 4) * mul);
+      if (rarity === 'epic' || rarity === 'legendary') {
+        stats.critChance = Math.floor(5 + r() * 10);
+        if (r() < 0.5) stats.intelligence = Math.floor((1 + r() * 3) * mul);
+      }
+      break;
+
+    case 'armor':
+      stats.vitality = Math.floor((3 + r() * 6) * mul);
+      stats[['strength', 'dexterity', 'intelligence'][Math.floor(r() * 3)]] = Math.floor((2 + r() * 4) * mul);
+      if (rarity === 'rare' || rarity === 'epic' || rarity === 'legendary') {
+        stats.armor = Math.floor((5 + r() * 15) * mul);
+      }
+      break;
+
+    case 'accessory':
+      // Rings / necklaces grant mixed bonuses
+      stats[['strength', 'dexterity', 'intelligence', 'vitality'][Math.floor(r() * 4)]] = Math.floor((2 + r() * 5) * mul);
+      if (rarity !== 'common') {
+        stats[['strength', 'dexterity', 'intelligence', 'vitality'][Math.floor(r() * 4)]] = Math.floor((1 + r() * 3) * mul);
+      }
+      if (rarity === 'epic' || rarity === 'legendary') {
+        stats.critChance = Math.floor(3 + r() * 8);
+        stats.luck = Math.floor((2 + r() * 5) * mul);
+      }
+      break;
+
+    case 'offhand':
+      stats.intelligence = Math.floor((4 + r() * 6) * mul);
+      if (r() < 0.5) stats.manaBonus = Math.floor((5 + r() * 10) * mul);
+      if (rarity === 'epic' || rarity === 'legendary') stats.spellPower = Math.floor((5 + r() * 10) * mul);
+      break;
+
+    case 'gem':
+    case 'rune':
+      // Gems give a single focused stat
+      stats[['strength', 'dexterity', 'intelligence', 'vitality', 'critChance', 'luck'][Math.floor(r() * 6)]] =
+        Math.floor((3 + r() * 7) * mul);
+      break;
+
+    case 'material':
+    case 'blueprint':
+      stats.craftingValue = Math.floor((5 + r() * 20) * mul);
+      break;
+
+    case 'relic':
+    case 'artifact':
+      // Relics/Artifacts give large multi-stat bonuses
+      stats.strength = Math.floor((2 + r() * 4) * mul);
+      stats.intelligence = Math.floor((2 + r() * 4) * mul);
+      stats.vitality = Math.floor((2 + r() * 4) * mul);
+      stats.dexterity = Math.floor((2 + r() * 4) * mul);
+      if (rarity === 'legendary') {
+        stats.luck = Math.floor((5 + r() * 10) * mul);
+        stats.critChance = Math.floor(8 + r() * 12);
+      }
+      break;
+
+    case 'potion':
+    case 'food':
+    case 'scroll':
+    case 'grenade':
+    case 'consumable':
+      stats.power = Math.floor((10 + r() * 20) * mul);
+      break;
+  }
+
+  return stats;
+}
+
+// ─── VALUE CALCULATION ───────────────────────────────────────────────────────
+
+function calculateValue(type: ItemType, rarity: LootItem['rarity'], stats: Record<string, number>): number {
+  const base = RARITY_VALUES[rarity].sellValue;
+  const statTotal = Object.values(stats).reduce((s, v) => s + v, 0);
+  const typeMultiplier: Partial<Record<ItemType, number>> = {
+    artifact: 3, relic: 2.5, accessory: 1.8, offhand: 1.4,
+    gem: 1.6, rune: 1.5, blueprint: 2,
   };
-  
-  private static rarityValues = {
-    common: { multiplier: 1, color: '#ffffff', sellValue: 10 },
-    uncommon: { multiplier: 1.5, color: '#1eff00', sellValue: 25 },
-    rare: { multiplier: 2, color: '#0070dd', sellValue: 50 },
-    epic: { multiplier: 3, color: '#a335ee', sellValue: 100 },
-    legendary: { multiplier: 5, color: '#ff8000', sellValue: 250 }
-  };
-  
+  return Math.floor((base + statTotal * 2) * (typeMultiplier[type] ?? 1));
+}
+
+// ─── NAME GENERATION ─────────────────────────────────────────────────────────
+
+function generateItemName(type: ItemType, rarity: LootItem['rarity']): string {
+  const r = () => Math.random();
+
+  if (rarity === 'legendary') {
+    return LEGENDARY_UNIQUES[Math.floor(r() * LEGENDARY_UNIQUES.length)];
+  }
+
+  switch (type) {
+    case 'weapon': {
+      const prefix = WEAPON_PREFIXES[Math.floor(r() * WEAPON_PREFIXES.length)];
+      const base = WEAPON_NAMES_FLAT[Math.floor(r() * WEAPON_NAMES_FLAT.length)];
+      return `${prefix} ${base}`;
+    }
+    case 'armor': {
+      const prefix = ARMOR_PREFIXES[Math.floor(r() * ARMOR_PREFIXES.length)];
+      const base = ARMOR_NAMES_FLAT[Math.floor(r() * ARMOR_NAMES_FLAT.length)];
+      return `${prefix} ${base}`;
+    }
+    case 'accessory':
+      return ACCESSORIES[Math.floor(r() * ACCESSORIES.length)];
+    case 'offhand':
+      return OFFHAND_ITEMS[Math.floor(r() * OFFHAND_ITEMS.length)];
+    case 'potion':
+    case 'consumable':
+      return POTIONS[Math.floor(r() * POTIONS.length)];
+    case 'food':
+      return FOOD_ITEMS[Math.floor(r() * FOOD_ITEMS.length)];
+    case 'scroll':
+      return SCROLLS[Math.floor(r() * SCROLLS.length)];
+    case 'grenade':
+      return GRENADES[Math.floor(r() * GRENADES.length)];
+    case 'gem':
+      return GEMS[Math.floor(r() * GEMS.length)];
+    case 'rune':
+      return RUNES[Math.floor(r() * RUNES.length)];
+    case 'material':
+      return MATERIALS[Math.floor(r() * MATERIALS.length)];
+    case 'relic':
+      return RELICS[Math.floor(r() * RELICS.length)];
+    case 'blueprint':
+      return BLUEPRINTS[Math.floor(r() * BLUEPRINTS.length)];
+    case 'artifact':
+      return ARTIFACTS[Math.floor(r() * ARTIFACTS.length)];
+    default:
+      return 'Unknown Item';
+  }
+}
+
+// ─── ITEM TYPE WEIGHTS ───────────────────────────────────────────────────────
+
+const ITEM_TYPE_POOL: ItemType[] = [
+  'weapon', 'weapon', 'weapon',          // 3× weight
+  'armor', 'armor', 'armor',
+  'potion', 'potion',
+  'scroll', 'scroll',
+  'accessory',
+  'offhand',
+  'food',
+  'grenade',
+  'gem',
+  'rune',
+  'material',
+  'blueprint',
+  'relic',
+  'artifact',
+];
+
+// ─── LOOT SYSTEM CLASS ───────────────────────────────────────────────────────
+
+export class LootSystem {
   static generateItem(
     position: Position,
     rarity: LootItem['rarity'],
-    itemType?: LootItem['type'],
+    itemType?: ItemType,
     playerLevel: number = 1
   ): LootItem {
-    const type = itemType || this.randomItemType();
-    const name = this.generateItemName(type, rarity);
-    const stats = this.generateStats(type, rarity, playerLevel);
-    const value = this.calculateValue(type, rarity, stats);
-    
+    const type = itemType ?? this.randomItemType();
+    const name = generateItemName(type, rarity);
+    const stats = generateStats(type, rarity, playerLevel);
+    const value = calculateValue(type, rarity, stats);
+
     const item: LootItem = {
       id: `item_${++itemIdCounter}`,
       name,
@@ -77,149 +473,42 @@ export class LootSystem {
       rarity,
       position,
       stats,
-      value
+      value,
     };
-    
-    // Add special effects for consumables
-    if (type === 'potion' || type === 'scroll') {
-      item.effect = this.generateEffect(type, name);
+
+    // Consumables and utility items get an effect tag
+    const consumableTypes: ItemType[] = ['potion', 'scroll', 'food', 'grenade', 'gem', 'rune', 'material', 'blueprint', 'consumable'];
+    if (consumableTypes.includes(type)) {
+      item.effect = deriveEffect(type, name);
     }
-    
+
+    // High-rarity equippable items may have socket slots
+    if ((type === 'weapon' || type === 'armor') && rarity === 'legendary') {
+      item.socketSlots = Math.floor(Math.random() * 2) + 1;
+      item.socketedGems = [];
+    }
+
     return item;
   }
-  
-  private static randomItemType(): LootItem['type'] {
-    const types: LootItem['type'][] = ['weapon', 'armor', 'potion', 'scroll'];
-    const weights = [35, 35, 20, 10]; // % chance
-    
-    const roll = Math.random() * 100;
-    let cumulative = 0;
-    
-    for (let i = 0; i < types.length; i++) {
-      cumulative += weights[i];
-      if (roll < cumulative) {
-        return types[i];
-      }
-    }
-    
-    return 'weapon';
+
+  static randomItemType(): ItemType {
+    return ITEM_TYPE_POOL[Math.floor(Math.random() * ITEM_TYPE_POOL.length)];
   }
-  
-  private static generateItemName(type: LootItem['type'], rarity: LootItem['rarity']): string {
-    const validTypes = type === 'consumable' ? 'potion' : type;
-    const prefixes = this.itemPrefixes[validTypes as keyof typeof this.itemPrefixes] || this.itemPrefixes.weapon;
-    const types = this.itemTypes[validTypes as keyof typeof this.itemTypes] || this.itemTypes.weapon;
-    
-    if (type === 'potion' || type === 'consumable') {
-      const prefix = prefixes[Math.min(Math.floor(Math.random() * prefixes.length), prefixes.length - 1)];
-      const potionType = types[Math.floor(Math.random() * types.length)];
-      return `${prefix} ${potionType}`;
-    }
-    
-    if (type === 'scroll') {
-      const scrollType = types[Math.floor(Math.random() * types.length)];
-      return `Scroll of ${scrollType}`;
-    }
-    
-    const prefix = prefixes[Math.floor(Math.random() * prefixes.length)];
-    const itemType = types[Math.floor(Math.random() * types.length)];
-    
-    // Legendary items get special names
-    if (rarity === 'legendary') {
-      const legendaryNames = [
-        'Excalibur', 'Mjolnir', 'Aegis', 'Gungnir', 'Durandal',
-        'Frostmourne', 'Sulfuras', 'Ashbringer', 'Thunderfury',
-        "Ner'zhul's Chillblade", 'The Lava Core', 'Heart of the Crystal Cavern',
-        "Zephyr's Cloud Mantle", 'Verdant Crown of the Forest',
-      ];
-      return legendaryNames[Math.floor(Math.random() * legendaryNames.length)];
-    }
-    
-    return `${prefix} ${itemType}`;
-  }
-  
-  private static generateStats(
-    type: LootItem['type'],
-    rarity: LootItem['rarity'],
-    playerLevel: number
-  ): Record<string, number> {
-    const stats: Record<string, number> = {};
-    const multiplier = this.rarityValues[rarity].multiplier * (1 + playerLevel * 0.1);
-    
-    if (type === 'weapon') {
-      stats.strength = Math.floor((3 + Math.random() * 7) * multiplier);
-      
-      if (Math.random() < 0.4) {
-        stats.dexterity = Math.floor((2 + Math.random() * 4) * multiplier);
-      }
-      
-      if (rarity === 'epic' || rarity === 'legendary') {
-        stats.critChance = Math.floor(5 + Math.random() * 10);
-        if (Math.random() < 0.5) {
-          stats.intelligence = Math.floor((1 + Math.random() * 3) * multiplier);
-        }
-      }
-    } else if (type === 'armor') {
-      stats.vitality = Math.floor((3 + Math.random() * 6) * multiplier);
-      
-      const randomStat = ['strength', 'dexterity', 'intelligence'][Math.floor(Math.random() * 3)];
-      stats[randomStat] = Math.floor((2 + Math.random() * 4) * multiplier);
-      
-      if (rarity === 'rare' || rarity === 'epic' || rarity === 'legendary') {
-        stats.armor = Math.floor((5 + Math.random() * 15) * multiplier);
-      }
-    } else if (type === 'potion' || type === 'scroll') {
-      // Consumables have effect power
-      stats.power = Math.floor((10 + Math.random() * 20) * multiplier);
-    }
-    
-    return stats;
-  }
-  
-  private static generateEffect(type: LootItem['type'], name: string): string {
-    if (type === 'potion') {
-      if (name.includes('Health')) return 'restore_health';
-      if (name.includes('Mana')) return 'restore_mana';
-      if (name.includes('Strength')) return 'boost_strength';
-      if (name.includes('Defense')) return 'boost_defense';
-      if (name.includes('Speed')) return 'boost_speed';
-    } else if (type === 'scroll') {
-      if (name.includes('Fireball')) return 'cast_fireball';
-      if (name.includes('Lightning')) return 'cast_lightning';
-      if (name.includes('Ice')) return 'cast_ice_storm';
-      if (name.includes('Healing')) return 'cast_heal';
-      if (name.includes('Teleportation')) return 'cast_teleport';
-      if (name.includes('Summoning')) return 'cast_summon';
-    }
-    
-    return 'unknown';
-  }
-  
-  private static calculateValue(
-    type: LootItem['type'],
-    rarity: LootItem['rarity'],
-    stats: Record<string, number>
-  ): number {
-    const baseValue = this.rarityValues[rarity].sellValue;
-    const statValue = Object.values(stats).reduce((sum, val) => sum + val, 0);
-    
-    return Math.floor(baseValue + statValue * 2);
-  }
-  
+
   static rollRarity(playerLevel: number, luckModifier: number = 0): LootItem['rarity'] {
     const roll = Math.random() * 100 + luckModifier;
     const levelBonus = Math.floor(playerLevel / 5);
-    
-    if (roll < 1 + levelBonus) return 'legendary';
-    if (roll < 5 + levelBonus * 2) return 'epic';
-    if (roll < 20 + levelBonus * 3) return 'rare';
-    if (roll < 50 + levelBonus * 2) return 'uncommon';
+
+    if (roll < 1 + levelBonus)          return 'legendary';
+    if (roll < 5 + levelBonus * 2)      return 'epic';
+    if (roll < 20 + levelBonus * 3)     return 'rare';
+    if (roll < 50 + levelBonus * 2)     return 'uncommon';
     return 'common';
   }
-  
+
   static applyModifiers(item: LootItem, modifiers: ItemModifier[]): LootItem {
     const newStats = { ...item.stats };
-    
+
     modifiers.forEach(modifier => {
       if (newStats && modifier.stat in newStats) {
         if (modifier.type === 'flat') {
@@ -229,11 +518,29 @@ export class LootSystem {
         }
       }
     });
-    
+
     return {
       ...item,
       stats: newStats,
-      value: this.calculateValue(item.type, item.rarity, newStats)
+      value: calculateValue(item.type, item.rarity, newStats),
     };
   }
+
+  /** Returns the display colour for a given rarity string. */
+  static getRarityColor(rarity: LootItem['rarity']): string {
+    return RARITY_VALUES[rarity]?.color ?? '#ffffff';
+  }
+
+  /** Human-readable category label for each item type. */
+  static getTypeLabel(type: ItemType): string {
+    const labels: Record<ItemType, string> = {
+      weapon: 'Weapon', armor: 'Armor', consumable: 'Consumable',
+      potion: 'Potion', scroll: 'Scroll', gem: 'Gem', rune: 'Rune',
+      relic: 'Relic', blueprint: 'Blueprint', material: 'Material',
+      accessory: 'Accessory', offhand: 'Off-Hand', grenade: 'Grenade',
+      food: 'Food', artifact: 'Artifact',
+    };
+    return labels[type] ?? type;
+  }
 }
+
