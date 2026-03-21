@@ -611,30 +611,53 @@ export default function Enemy({ enemy }: EnemyProps) {
   const healthBarRef = useRef<THREE.Mesh>(null);
   const healthFillRef = useRef<THREE.Mesh>(null);
   const hpPulseRef = useRef<THREE.Mesh>(null);
+  const shadowRef = useRef<THREE.Mesh>(null);
   const { position: playerPosition } = usePlayer();
   const { moveEnemy } = useEnemies();
+  const { addEffect } = useVFX();
 
   // Hit-flash tracking
   const prevHealthRef = useRef(enemy.health);
   const hitFlashTimeRef = useRef(-999);
-  const idlePhaseRef = useRef(Math.random() * Math.PI * 2); // random idle offset per enemy
+  const idlePhaseRef = useRef(Math.random() * Math.PI * 2);
+  // attacking = enemy is close to player
+  const isAttackingRef = useRef(false);
+  // track if we've already fired a death VFX for this enemy
+  const deathVFXFiredRef = useRef(false);
+
+  // Per-enemy color based on type for death VFX
+  const deathColor = enemy.type === 'demon' ? '#ff2200'
+    : enemy.type === 'orc' ? '#88ff44'
+    : enemy.type === 'skeleton' ? '#00ffcc'
+    : '#aaffaa';
 
   useFrame((state) => {
-    if (!groupRef.current || enemy.health <= 0) return;
     const t = state.clock.elapsedTime;
 
-    // Detect damage taken → trigger flash
+    // ── Death VFX: fire once when health hits 0 ───────────────────────────────
+    if (enemy.health <= 0) {
+      if (!deathVFXFiredRef.current) {
+        deathVFXFiredRef.current = true;
+        addEffect({ type: "death", position: enemy.position, color: deathColor });
+      }
+      return;
+    }
+
+    if (!groupRef.current) return;
+
+    // Detect damage taken → trigger flash + hit VFX
     if (enemy.health < prevHealthRef.current) {
       hitFlashTimeRef.current = t;
+      addEffect({ type: "hit", position: { x: enemy.position.x, y: enemy.position.y + 0.8, z: enemy.position.z }, color: '#ff4422' });
     }
     prevHealthRef.current = enemy.health;
 
-    // Hit flash: briefly scale up and emit bright red
+    // Hit flash: briefly scale up
     const flashAge = t - hitFlashTimeRef.current;
-    const flashing = flashAge < 0.25;
+    const flashing = flashAge < 0.28;
     if (flashing) {
-      const flashIntensity = 1 - flashAge / 0.25;
-      groupRef.current.scale.setScalar(1 + flashIntensity * 0.06);
+      const flashIntensity = 1 - flashAge / 0.28;
+      groupRef.current.scale.setScalar(1 + flashIntensity * 0.1);
     } else {
       groupRef.current.scale.setScalar(1);
     }
@@ -648,6 +671,9 @@ export default function Enemy({ enemy }: EnemyProps) {
 
     const dist = direction.length();
     if (dist > 0.1) direction.normalize();
+
+    // Attacking when within melee range
+    isAttackingRef.current = dist < 2.5;
 
     const speed = enemy.speed * 0.016;
     const newPos = {
@@ -692,6 +718,12 @@ export default function Enemy({ enemy }: EnemyProps) {
         pulseMat.opacity = 0;
       }
     }
+
+    // Blob shadow shrinks when enemy is in the air / sways
+    if (shadowRef.current) {
+      const shadowScale = 0.9 + Math.sin(t * 1.8 + idlePhaseRef.current) * 0.06;
+      shadowRef.current.scale.setScalar(shadowScale);
+    }
   });
 
   if (enemy.health <= 0) return null;
@@ -709,14 +741,22 @@ export default function Enemy({ enemy }: EnemyProps) {
   const barFillW = healthPercent * barFullW;
   const barFillOffset = -(barFullW - barFillW) / 2;
 
+  const isAtk = isAttackingRef.current;
+
   return (
     <group ref={groupRef} position={[enemy.position.x, enemy.position.y, enemy.position.z]}>
+      {/* Blob shadow on ground */}
+      <mesh ref={shadowRef} receiveShadow position={[0, -0.44, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <circleGeometry args={[0.55, 16]} />
+        <meshBasicMaterial color="#000000" transparent opacity={0.28} depthWrite={false} />
+      </mesh>
+
       {/* Enemy model by type */}
-      {enemy.type === 'zombie' && <ZombieModel />}
-      {enemy.type === 'skeleton' && <SkeletonModel />}
-      {enemy.type === 'orc' && <OrcModel />}
-      {enemy.type === 'demon' && <DemonModel />}
-      {!['zombie', 'skeleton', 'orc', 'demon'].includes(enemy.type) && <ZombieModel />}
+      {enemy.type === 'zombie' && <ZombieModel isAttacking={isAtk} />}
+      {enemy.type === 'skeleton' && <SkeletonModel isAttacking={isAtk} />}
+      {enemy.type === 'orc' && <OrcModel isAttacking={isAtk} />}
+      {enemy.type === 'demon' && <DemonModel isAttacking={isAtk} />}
+      {!['zombie', 'skeleton', 'orc', 'demon'].includes(enemy.type) && <ZombieModel isAttacking={isAtk} />}
 
       {/* ── HEALTH BAR ──────────────────────────────────────────────── */}
       {/* Bar border/shadow */}
