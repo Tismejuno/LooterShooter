@@ -2,12 +2,16 @@ import { useState, useEffect, useRef } from "react";
 import { usePlayer } from "../../lib/stores/usePlayer";
 import { useGame } from "../../lib/stores/useGame";
 import { useKeyboardControls } from "@react-three/drei";
+import { useDailyLogin } from "../../lib/stores/useDailyLogin";
+import { useStory } from "../../lib/stores/useStory";
 import Inventory from "./Inventory";
 import SkillTree from "./SkillTree";
 import Minimap from "./Minimap";
 import SpellBook from "./SpellBook";
 import Shop from "./Shop";
 import Convert from "./Convert";
+import DailyLogin from "./DailyLogin";
+import StoryPanel from "./StoryPanel";
 
 // Animated bar component
 function StatBar({
@@ -187,6 +191,7 @@ export default function GameUI() {
   const [showShop, setShowShop] = useState(false);
   const [showConvert, setShowConvert] = useState(false);
   const [showLevelUp, setShowLevelUp] = useState(false);
+  const [showStory, setShowStory] = useState(false);
   const prevLevel = useRef(1);
 
   const { phase } = useGame();
@@ -202,6 +207,10 @@ export default function GameUI() {
     gold,
     statusEffects,
   } = usePlayer();
+
+  const { showLoginModal } = useDailyLogin();
+  const { currentZone } = useStory();
+  const zone = currentZone();
 
   // Detect level-up
   useEffect(() => {
@@ -304,6 +313,25 @@ export default function GameUI() {
           <span style={{ color: '#ffcc44', fontWeight: 'bold', fontSize: '15px' }}>{gold.toLocaleString()}</span>
           <span style={{ color: '#888', fontSize: '11px' }}>gold</span>
         </div>
+
+        {/* Current zone indicator */}
+        <div style={{
+          marginTop: '8px',
+          paddingTop: '8px',
+          borderTop: `1px solid ${zone.accentColor}30`,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '6px',
+          cursor: 'pointer',
+        }} onClick={() => setShowStory(true)}>
+          <span style={{ fontSize: '14px' }}>{zone.icon}</span>
+          <div>
+            <div style={{ color: zone.accentColor, fontSize: '10px', fontWeight: 'bold' }}>
+              {zone.subtitle.split('—')[0].trim()}
+            </div>
+            <div style={{ color: '#aaa', fontSize: '9px' }}>{zone.name}</div>
+          </div>
+        </div>
       </div>
 
       {/* === TOP RIGHT: Stats Panel === */}
@@ -372,6 +400,7 @@ export default function GameUI() {
         <QuickButton onClick={() => setShowSkills(true)} emoji="📊" label="Skills" color="#336644" borderColor="#559966" />
         <QuickButton onClick={() => setShowShop(true)} emoji="🏪" label="Shop" color="#775533" borderColor="#aa7755" />
         <QuickButton onClick={() => setShowConvert(true)} emoji="⚗️" label="Convert" color="#556644" borderColor="#778866" />
+        <QuickButton onClick={() => setShowStory(true)} emoji="📖" label="Story" color="#553366" borderColor="#886699" />
       </div>
 
       {/* === Status Effects Display === */}
@@ -479,6 +508,8 @@ export default function GameUI() {
       {showSpells && <SpellBook onClose={() => setShowSpells(false)} />}
       {showShop && <Shop onClose={() => setShowShop(false)} />}
       {showConvert && <Convert onClose={() => setShowConvert(false)} />}
+      {showStory && <StoryPanel onClose={() => setShowStory(false)} />}
+      {showLoginModal && <DailyLogin />}
 
       {/* === Game Phase Overlay === */}
       {phase !== 'playing' && (

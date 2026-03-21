@@ -1,5 +1,6 @@
 import { usePlayer } from "../../lib/stores/usePlayer";
-import { LootItem } from "../../lib/gameTypes";
+import { LootItem, ItemType } from "../../lib/gameTypes";
+import { LootSystem } from "../../lib/LootSystem";
 import { useState } from "react";
 
 const MAX_INVENTORY_SIZE = 30;
@@ -51,6 +52,21 @@ function ItemIcon({ type, rarity }: { type: string; rarity: string }) {
     filter: rarity !== 'common' ? `drop-shadow(0 0 4px ${color})` : 'none',
   };
 
+  // Emoji fallback icons for new types
+  const emojiIcons: Partial<Record<ItemType, string>> = {
+    gem: '💎', rune: '🔤', relic: '🏺', blueprint: '📜',
+    material: '🪨', accessory: '💍', offhand: '🔮',
+    grenade: '💣', food: '🍖', artifact: '🌟',
+  };
+
+  if (emojiIcons[type as ItemType]) {
+    return (
+      <div style={{ ...iconStyle, fontSize: '28px', filter: 'none' }}>
+        {emojiIcons[type as ItemType]}
+      </div>
+    );
+  }
+
   switch (type) {
     case 'weapon':
       return (
@@ -85,6 +101,7 @@ function ItemIcon({ type, rarity }: { type: string; rarity: string }) {
         </div>
       );
     case 'potion':
+    case 'consumable':
       return (
         <div style={iconStyle}>
           <svg width={size} height={size} viewBox="0 0 48 48">
@@ -209,7 +226,7 @@ function ItemCard({
       </div>
       <div style={{ fontSize: '10px', color: '#aaa', marginBottom: '4px' }}>
         {item.rarity.charAt(0).toUpperCase() + item.rarity.slice(1)} •{' '}
-        {item.type.charAt(0).toUpperCase() + item.type.slice(1)}
+        {LootSystem.getTypeLabel(item.type as any)}
       </div>
       {item.stats && (
         <div style={{ fontSize: '10px', color: '#88ccaa', marginTop: '4px' }}>
@@ -223,7 +240,7 @@ function ItemCard({
           💰 {item.value}g
         </div>
       )}
-      {showUse && onUse && (item.type === 'potion' || item.type === 'scroll' || item.type === 'consumable') && (
+      {showUse && onUse && (['potion', 'scroll', 'consumable', 'food', 'grenade'].includes(item.type)) && (
         <button
           onClick={(e) => { e.stopPropagation(); onUse(); }}
           style={{
@@ -248,10 +265,11 @@ function ItemCard({
 
 export default function Inventory({ onClose }: InventoryProps) {
   const { inventory, equipped, equipItem, unequipItem, useConsumable } = usePlayer();
-  const [activeTab, setActiveTab] = useState<'all' | 'weapons' | 'armor' | 'consumables'>('all');
+  const [activeTab, setActiveTab] = useState<'all' | 'weapons' | 'armor' | 'consumables' | 'gems' | 'materials'>('all');
 
   const handleItemClick = (item: LootItem) => {
-    if (item.type === 'weapon' || item.type === 'armor') {
+    const equipableTypes: ItemType[] = ['weapon', 'armor', 'accessory', 'offhand', 'relic', 'artifact'];
+    if (equipableTypes.includes(item.type as ItemType)) {
       const isEquipped = equipped.some(eq => eq.id === item.id);
       if (isEquipped) {
         unequipItem(item.id);
@@ -264,21 +282,24 @@ export default function Inventory({ onClose }: InventoryProps) {
   const filteredInventory = inventory.filter(item => {
     if (activeTab === 'all') return true;
     if (activeTab === 'weapons') return item.type === 'weapon';
-    if (activeTab === 'armor') return item.type === 'armor';
-    if (activeTab === 'consumables') return item.type === 'potion' || item.type === 'scroll' || item.type === 'consumable';
+    if (activeTab === 'armor') return item.type === 'armor' || item.type === 'accessory' || item.type === 'offhand';
+    if (activeTab === 'consumables') return ['potion', 'scroll', 'consumable', 'food', 'grenade'].includes(item.type);
+    if (activeTab === 'gems') return item.type === 'gem' || item.type === 'rune';
+    if (activeTab === 'materials') return ['material', 'blueprint', 'relic', 'artifact'].includes(item.type);
     return true;
   });
 
   const tabStyle = (active: boolean): React.CSSProperties => ({
-    padding: '6px 14px',
+    padding: '6px 12px',
     border: 'none',
     borderBottom: active ? '2px solid #ffaa00' : '2px solid transparent',
     backgroundColor: 'transparent',
     color: active ? '#ffaa00' : '#888',
     cursor: 'pointer',
-    fontSize: '13px',
+    fontSize: '12px',
     fontWeight: active ? 'bold' : 'normal',
     transition: 'all 0.2s',
+    whiteSpace: 'nowrap',
   });
 
   return (
@@ -379,12 +400,18 @@ export default function Inventory({ onClose }: InventoryProps) {
           borderBottom: '1px solid #2a2040',
           backgroundColor: '#0a0c14',
           padding: '0 16px',
+          overflowX: 'auto',
         }}>
-          {(['all', 'weapons', 'armor', 'consumables'] as const).map(tab => (
-            <button key={tab} style={tabStyle(activeTab === tab)} onClick={() => setActiveTab(tab)}>
-              {tab === 'all' ? '📦 All' :
-               tab === 'weapons' ? '⚔️ Weapons' :
-               tab === 'armor' ? '🛡️ Armor' : '🧪 Consumables'}
+          {([
+            { id: 'all', label: '📦 All' },
+            { id: 'weapons', label: '⚔️ Weapons' },
+            { id: 'armor', label: '🛡️ Armor & Gear' },
+            { id: 'consumables', label: '🧪 Consumables' },
+            { id: 'gems', label: '💎 Gems & Runes' },
+            { id: 'materials', label: '🪨 Materials' },
+          ] as const).map(tab => (
+            <button key={tab.id} style={tabStyle(activeTab === tab.id)} onClick={() => setActiveTab(tab.id)}>
+              {tab.label}
             </button>
           ))}
         </div>

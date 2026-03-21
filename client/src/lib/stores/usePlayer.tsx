@@ -59,6 +59,8 @@ interface PlayerState {
   regenerate: () => void;
   addGold: (amount: number) => void;
   removeGold: (amount: number) => boolean;
+  addEssence: (amount: number) => void;
+  addCrystals: (amount: number) => void;
   addStatusEffect: (effect: StatusEffect) => void;
   updateStatusEffects: (deltaTime: number) => void;
   upgradeSpell: (spellId: string) => boolean;
@@ -256,8 +258,24 @@ export const usePlayer = create<PlayerState>((set, get) => ({
 
   equipItem: (item) => {
     set((state) => {
-      // Remove any existing item of the same type
-      const filteredEquipped = state.equipped.filter(eq => eq.type !== item.type);
+      // Items that can't be equipped (consumables, materials, etc.)
+      const equipableTypes = ['weapon', 'armor', 'accessory', 'offhand', 'relic', 'artifact'];
+      if (!equipableTypes.includes(item.type)) return {};
+
+      // Accessories stack up to 2 rings; other types replace
+      let newEquipped: typeof state.equipped;
+      if (item.type === 'accessory') {
+        const rings = state.equipped.filter(eq => eq.type === 'accessory');
+        if (rings.length >= 2) {
+          // Remove oldest ring
+          const oldest = rings[0];
+          newEquipped = state.equipped.filter(eq => eq.id !== oldest.id);
+        } else {
+          newEquipped = [...state.equipped];
+        }
+      } else {
+        newEquipped = state.equipped.filter(eq => eq.type !== item.type);
+      }
       
       // Apply item stats
       const newStats = { ...state.stats };
@@ -270,7 +288,7 @@ export const usePlayer = create<PlayerState>((set, get) => ({
       }
       
       return {
-        equipped: [...filteredEquipped, item],
+        equipped: [...newEquipped, item],
         stats: newStats
       };
     });
@@ -346,6 +364,14 @@ export const usePlayer = create<PlayerState>((set, get) => ({
       return true;
     }
     return false;
+  },
+
+  addEssence: (amount) => {
+    set((state) => ({ essence: state.essence + amount }));
+  },
+
+  addCrystals: (amount) => {
+    set((state) => ({ crystals: state.crystals + amount }));
   },
 
   addStatusEffect: (effect) => {
@@ -449,18 +475,48 @@ export const usePlayer = create<PlayerState>((set, get) => ({
   },
 
   useConsumable: (item) => {
-    if (item.type !== 'potion' && item.type !== 'scroll' && item.type !== 'consumable') return;
+    const consumableTypes = ['potion', 'scroll', 'consumable', 'food', 'grenade'];
+    if (!consumableTypes.includes(item.type)) return;
     
     set((state) => {
       const updates: Partial<PlayerState> = {
         inventory: state.inventory.filter(i => i.id !== item.id)
       };
       
+      const power = item.stats?.power || 50;
+
       // Apply consumable effects
-      if (item.effect === 'restore_health') {
-        updates.health = Math.min(state.maxHealth, state.health + (item.stats?.power || 50));
-      } else if (item.effect === 'restore_mana') {
-        updates.mana = Math.min(state.maxMana, state.mana + (item.stats?.power || 30));
+      switch (item.effect) {
+        case 'restore_health':
+          updates.health = Math.min(state.maxHealth, state.health + power);
+          break;
+        case 'restore_mana':
+          updates.mana = Math.min(state.maxMana, state.mana + power);
+          break;
+        case 'regen_both':
+          updates.health = Math.min(state.maxHealth, state.health + power * 0.5);
+          updates.mana = Math.min(state.maxMana, state.mana + power * 0.5);
+          break;
+        case 'full_restore':
+          updates.health = state.maxHealth;
+          updates.mana = state.maxMana;
+          break;
+        case 'boost_strength': {
+          const ns = { ...state.stats };
+          ns.strength = Math.min(ns.strength + Math.floor(power / 5), ns.strength + 20);
+          updates.stats = ns;
+          break;
+        }
+        case 'boost_intelligence': {
+          const ns = { ...state.stats };
+          ns.intelligence = Math.min(ns.intelligence + Math.floor(power / 5), ns.intelligence + 20);
+          updates.stats = ns;
+          break;
+        }
+        // Grenade and scroll effects — brief projectile / AoE would be handled by game loop
+        // For now they consume the item; actual combat effects are triggered by game loop
+        default:
+          break;
       }
       
       return updates;
