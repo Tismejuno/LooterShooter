@@ -16,17 +16,39 @@ let itemIdCounter = 0;
 
 export class LootSystem {
   private static itemPrefixes = {
-    weapon: ['Sharp', 'Keen', 'Brutal', 'Swift', 'Deadly', 'Ancient', 'Cursed', 'Blessed', 'Vengeful', 'Divine'],
-    armor: ['Sturdy', 'Light', 'Heavy', 'Reinforced', 'Magical', 'Dragon', 'Shadow', 'Holy', 'Ethereal', 'Titan'],
-    potion: ['Minor', 'Lesser', 'Greater', 'Major', 'Superior', 'Divine'],
-    scroll: ['Scroll of', 'Tome of', 'Grimoire of', 'Codex of']
+    weapon: [
+      'Sharp', 'Keen', 'Brutal', 'Swift', 'Deadly', 'Ancient', 'Cursed', 'Blessed',
+      'Vengeful', 'Divine', 'Frostbitten', 'Volcanic', 'Crystal', 'Stormborn',
+      'Verdant', 'Glacial', 'Infernal', 'Celestial', 'Arcane', 'Thunderous',
+    ],
+    armor: [
+      'Sturdy', 'Light', 'Heavy', 'Reinforced', 'Magical', 'Dragon', 'Shadow',
+      'Holy', 'Ethereal', 'Titan', 'Frozen', 'Ember', 'Cloudweave', 'Crystalline',
+      'Mossgrown', 'Volcanic', 'Stormforged', 'Astral', 'Verdant', 'Glacial',
+    ],
+    potion: ['Minor', 'Lesser', 'Greater', 'Major', 'Superior', 'Divine', 'Ancient', 'Crystalline'],
+    scroll: ['Scroll of', 'Tome of', 'Grimoire of', 'Codex of', 'Tablet of'],
   };
-  
+
   private static itemTypes = {
-    weapon: ['Sword', 'Axe', 'Bow', 'Staff', 'Dagger', 'Mace', 'Spear', 'Hammer', 'Wand'],
-    armor: ['Helmet', 'Chestplate', 'Boots', 'Gauntlets', 'Shield', 'Cloak', 'Belt', 'Ring'],
-    potion: ['Health Potion', 'Mana Potion', 'Strength Elixir', 'Defense Tonic', 'Speed Draught'],
-    scroll: ['Fireball', 'Lightning', 'Ice Storm', 'Healing', 'Teleportation', 'Summoning']
+    weapon: [
+      'Sword', 'Axe', 'Bow', 'Staff', 'Dagger', 'Mace', 'Spear', 'Hammer', 'Wand',
+      'Frostblade', 'Lava Shard', 'Cloud Scepter', 'Crystal Shiv', 'Vine Whip',
+      'Snowflake Shuriken', 'Ember Lance', 'Skybow', 'Glacial Cleaver', 'Thornbark Club',
+    ],
+    armor: [
+      'Helmet', 'Chestplate', 'Boots', 'Gauntlets', 'Shield', 'Cloak', 'Belt', 'Ring',
+      'Frost Mantle', 'Lava Plate', 'Cloud Shroud', 'Crystal Carapace', 'Bark Buckler',
+      'Snow Veil', 'Ember Greaves', 'Sky Pendant', 'Glacial Cuirass', 'Thornwood Circlet',
+    ],
+    potion: [
+      'Health Potion', 'Mana Potion', 'Strength Elixir', 'Defense Tonic', 'Speed Draught',
+      'Frost Essence', 'Lava Extract', 'Cloud Dew', 'Crystal Tincture', 'Nature Brew',
+    ],
+    scroll: [
+      'Fireball', 'Lightning', 'Ice Storm', 'Healing', 'Teleportation', 'Summoning',
+      'Blizzard', 'Eruption', 'Skyfall', 'Crystal Spire', 'Nature Surge', 'Thunder Clap',
+    ],
   };
   
   private static rarityValues = {
@@ -104,7 +126,12 @@ export class LootSystem {
     
     // Legendary items get special names
     if (rarity === 'legendary') {
-      const legendaryNames = ['Excalibur', 'Mjolnir', 'Aegis', 'Gungnir', 'Durandal'];
+      const legendaryNames = [
+        'Excalibur', 'Mjolnir', 'Aegis', 'Gungnir', 'Durandal',
+        'Frostmourne', 'Sulfuras', 'Ashbringer', 'Thunderfury',
+        "Ner'zhul's Chillblade", 'The Lava Core', 'Heart of the Crystal Cavern',
+        "Zephyr's Cloud Mantle", 'Verdant Crown of the Forest',
+      ];
       return legendaryNames[Math.floor(Math.random() * legendaryNames.length)];
     }
     

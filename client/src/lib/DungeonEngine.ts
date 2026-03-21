@@ -1,11 +1,14 @@
 import { Position, Trap, SpawnPoint } from "./gameTypes";
 
+export type Biome = 'dungeon' | 'grassland' | 'snow' | 'clouds' | 'lava' | 'crystal';
+
 export interface Room {
   x: number;
   z: number;
   width: number;
   height: number;
   type: 'normal' | 'treasure' | 'boss' | 'spawn';
+  biome: Biome;
 }
 
 export interface Corridor {
@@ -40,14 +43,22 @@ export class DungeonEngine {
     const traps: Trap[] = [];
     const spawnPoints: SpawnPoint[] = [];
     const walls: Wall[] = [];
-    
+
+    // Biome pool based on level; higher levels unlock more exotic biomes
+    const availableBiomes: Biome[] = ['dungeon', 'grassland'];
+    if (level >= 2) availableBiomes.push('snow');
+    if (level >= 3) availableBiomes.push('crystal');
+    if (level >= 4) availableBiomes.push('lava');
+    if (level >= 5) availableBiomes.push('clouds');
+
     // Generate main spawn room
     const spawnRoom: Room = {
       x: 0,
       z: 0,
       width: 15,
       height: 15,
-      type: 'spawn'
+      type: 'spawn',
+      biome: 'dungeon'
     };
     rooms.push(spawnRoom);
     
@@ -60,13 +71,15 @@ export class DungeonEngine {
       const distance = roomDistance + Math.random() * 10;
       
       const roomType = this.determineRoomType(i, numRooms);
+      const biome = availableBiomes[Math.floor(Math.random() * availableBiomes.length)];
       
       const room: Room = {
         x: Math.cos(angle) * distance,
         z: Math.sin(angle) * distance,
         width: 10 + Math.random() * 8,
         height: 10 + Math.random() * 8,
-        type: roomType
+        type: roomType,
+        biome
       };
       rooms.push(room);
       
