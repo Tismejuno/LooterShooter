@@ -263,18 +263,18 @@ export const usePlayer = create<PlayerState>((set, get) => ({
       if (!equipableTypes.includes(item.type)) return {};
 
       // Accessories stack up to 2 rings; other types replace
-      let filteredEquipped: typeof state.equipped;
+      let newEquipped: typeof state.equipped;
       if (item.type === 'accessory') {
         const rings = state.equipped.filter(eq => eq.type === 'accessory');
         if (rings.length >= 2) {
           // Remove oldest ring
           const oldest = rings[0];
-          filteredEquipped = state.equipped.filter(eq => eq.id !== oldest.id);
+          newEquipped = state.equipped.filter(eq => eq.id !== oldest.id);
         } else {
-          filteredEquipped = [...state.equipped];
+          newEquipped = [...state.equipped];
         }
       } else {
-        filteredEquipped = state.equipped.filter(eq => eq.type !== item.type);
+        newEquipped = state.equipped.filter(eq => eq.type !== item.type);
       }
       
       // Apply item stats
@@ -288,7 +288,7 @@ export const usePlayer = create<PlayerState>((set, get) => ({
       }
       
       return {
-        equipped: [...filteredEquipped, item],
+        equipped: [...newEquipped, item],
         stats: newStats
       };
     });

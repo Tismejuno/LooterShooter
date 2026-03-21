@@ -310,7 +310,10 @@ function generateStats(
 
     case 'armor':
       stats.vitality = Math.floor((3 + r() * 6) * mul);
-      stats[['strength', 'dexterity', 'intelligence'][Math.floor(r() * 3)]] = Math.floor((2 + r() * 4) * mul);
+      {
+        const armorSecondaryStats = ['strength', 'dexterity', 'intelligence'];
+        stats[armorSecondaryStats[Math.floor(r() * armorSecondaryStats.length)]] = Math.floor((2 + r() * 4) * mul);
+      }
       if (rarity === 'rare' || rarity === 'epic' || rarity === 'legendary') {
         stats.armor = Math.floor((5 + r() * 15) * mul);
       }
@@ -318,13 +321,16 @@ function generateStats(
 
     case 'accessory':
       // Rings / necklaces grant mixed bonuses
-      stats[['strength', 'dexterity', 'intelligence', 'vitality'][Math.floor(r() * 4)]] = Math.floor((2 + r() * 5) * mul);
-      if (rarity !== 'common') {
-        stats[['strength', 'dexterity', 'intelligence', 'vitality'][Math.floor(r() * 4)]] = Math.floor((1 + r() * 3) * mul);
-      }
-      if (rarity === 'epic' || rarity === 'legendary') {
-        stats.critChance = Math.floor(3 + r() * 8);
-        stats.luck = Math.floor((2 + r() * 5) * mul);
+      {
+        const statKeys4 = ['strength', 'dexterity', 'intelligence', 'vitality'];
+        stats[statKeys4[Math.floor(r() * 4)]] = Math.floor((2 + r() * 5) * mul);
+        if (rarity !== 'common') {
+          stats[statKeys4[Math.floor(r() * 4)]] = Math.floor((1 + r() * 3) * mul);
+        }
+        if (rarity === 'epic' || rarity === 'legendary') {
+          stats.critChance = Math.floor(3 + r() * 8);
+          stats.luck = Math.floor((2 + r() * 5) * mul);
+        }
       }
       break;
 
@@ -337,8 +343,11 @@ function generateStats(
     case 'gem':
     case 'rune':
       // Gems give a single focused stat
-      stats[['strength', 'dexterity', 'intelligence', 'vitality', 'critChance', 'luck'][Math.floor(r() * 6)]] =
-        Math.floor((3 + r() * 7) * mul);
+      {
+        const gemStats = ['strength', 'dexterity', 'intelligence', 'vitality', 'critChance', 'luck'];
+        const gemStat = gemStats[Math.floor(r() * gemStats.length)];
+        stats[gemStat] = Math.floor((3 + r() * 7) * mul);
+      }
       break;
 
     case 'material':

@@ -299,7 +299,7 @@ export default function Inventory({ onClose }: InventoryProps) {
     fontSize: '12px',
     fontWeight: active ? 'bold' : 'normal',
     transition: 'all 0.2s',
-    whiteSpace: 'nowrap' as const,
+    whiteSpace: 'nowrap',
   });
 
   return (
