@@ -1,6 +1,8 @@
 import { useFrame, useThree } from "@react-three/fiber";
 import { useRef, useMemo } from "react";
 import * as THREE from "three";
+import { EffectComposer, Bloom, Vignette } from "@react-three/postprocessing";
+import { BlendFunction } from "postprocessing";
 import Player from "./Player";
 import Dungeon from "./Dungeon";
 import Enemy from "./Enemy";
@@ -85,56 +87,52 @@ export default function GameScene() {
       {/* === LIGHTING SETUP === */}
 
       {/* Deep ambient - dark dungeon atmosphere */}
-      <ambientLight intensity={0.12} color="#1a1030" />
+      <ambientLight intensity={0.15} color="#1a1030" />
 
-      {/* Main directional (moonlight-style) */}
+      {/* Main directional (moonlight-style) with adaptive shadow quality */}
       <directionalLight
         ref={lightRef}
-        intensity={0.8}
+        intensity={1.0}
         position={[15, 25, 10]}
         castShadow
         shadow-mapSize={[2048, 2048]}
-        shadow-camera-far={80}
-        shadow-camera-left={-30}
-        shadow-camera-right={30}
-        shadow-camera-top={30}
-        shadow-camera-bottom={-30}
-        shadow-bias={-0.001}
+        shadow-camera-far={100}
+        shadow-camera-left={-40}
+        shadow-camera-right={40}
+        shadow-camera-top={40}
+        shadow-camera-bottom={-40}
+        shadow-bias={-0.0005}
         color="#c8aaff"
       />
 
-      {/* Warm rim light from behind (fire/lava source) */}
+      {/* Warm rim light (fire/lava source) */}
       <directionalLight
         ref={rimLightRef}
-        intensity={0.4}
+        intensity={0.5}
         position={[-10, 8, -15]}
         color="#ff6622"
       />
 
-      {/* Cool fill from opposite side */}
-      <directionalLight
-        intensity={0.2}
-        position={[0, 5, 20]}
-        color="#4488ff"
-      />
+      {/* Cool fill light */}
+      <directionalLight intensity={0.25} position={[0, 5, 20]} color="#4488ff" />
 
-      {/* Central dungeon lantern glow */}
-      <pointLight position={[0, 6, 0]} intensity={0.5} color="#ffcc44" distance={20} decay={1.5} />
+      {/* Central dungeon lantern */}
+      <pointLight position={[0, 6, 0]} intensity={0.6} color="#ffcc44" distance={22} decay={1.5} />
 
       {/* Far corner atmospheric lights */}
-      <pointLight position={[-20, 3, -20]} intensity={0.6} color="#ff4400" distance={15} decay={2} />
-      <pointLight position={[20, 3, -20]} intensity={0.4} color="#ff4400" distance={12} decay={2} />
-      <pointLight position={[-20, 3, 20]} intensity={0.5} color="#4422ff" distance={12} decay={2} />
-      <pointLight position={[20, 3, 20]} intensity={0.4} color="#4422ff" distance={12} decay={2} />
+      <pointLight position={[-20, 3, -20]} intensity={0.7} color="#ff4400" distance={18} decay={2} />
+      <pointLight position={[20, 3, -20]} intensity={0.5} color="#ff4400" distance={15} decay={2} />
+      <pointLight position={[-20, 3, 20]} intensity={0.6} color="#4422ff" distance={15} decay={2} />
+      <pointLight position={[20, 3, 20]} intensity={0.5} color="#4422ff" distance={15} decay={2} />
 
-      {/* Subtle upward bounce light from floor */}
-      <hemisphereLight args={["#0a0818", "#201808", 0.15]} />
+      {/* Sky hemisphere for outdoor biomes */}
+      <hemisphereLight args={["#6699cc", "#334422", 0.25]} />
 
       {/* === GAME OBJECTS === */}
       <Dungeon />
       <Player />
 
-      {/* Aim cursor (mouse-point target indicator) */}
+      {/* Aim cursor */}
       <AimCursor />
 
       {/* Enemies */}
@@ -151,6 +149,20 @@ export default function GameScene() {
       {projectiles.map((projectile) => (
         <Projectile key={projectile.id} projectile={projectile} />
       ))}
+
+      {/* === POST-PROCESSING (bloom + vignette) === */}
+      <EffectComposer>
+        {/* Bloom: makes emissive glows, lava, crystals, torches beautiful */}
+        <Bloom
+          luminanceThreshold={0.35}
+          luminanceSmoothing={0.6}
+          intensity={1.4}
+          blendFunction={BlendFunction.ADD}
+          mipmapBlur
+        />
+        {/* Vignette: darkens the edges for cinematic atmosphere */}
+        <Vignette eskil={false} offset={0.35} darkness={0.6} blendFunction={BlendFunction.NORMAL} />
+      </EffectComposer>
     </>
   );
 }

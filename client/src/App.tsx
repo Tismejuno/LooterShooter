@@ -1,5 +1,6 @@
 import { Canvas } from "@react-three/fiber";
 import { Suspense, useEffect, useState } from "react";
+import * as THREE from "three";
 import { KeyboardControls } from "@react-three/drei";
 import { useAudio } from "./lib/stores/useAudio";
 import { useGame } from "./lib/stores/useGame";
@@ -188,7 +189,9 @@ function App() {
           }}
           gl={{
             antialias: true,
-            powerPreference: "high-performance"
+            powerPreference: "high-performance",
+            toneMapping: THREE.ACESFilmicToneMapping,
+            toneMappingExposure: 1.2,
           }}
         >
           <color attach="background" args={["#2a1810"]} />
