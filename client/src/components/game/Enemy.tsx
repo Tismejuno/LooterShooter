@@ -4,18 +4,20 @@ import * as THREE from "three";
 import { Enemy as EnemyType } from "../../lib/gameTypes";
 import { usePlayer } from "../../lib/stores/usePlayer";
 import { useEnemies } from "../../lib/stores/useEnemies";
+import { useVFX } from "../../lib/stores/useVFX";
 
 interface EnemyProps {
   enemy: EnemyType;
 }
 
 // Zombie - slow, rotting green-brown humanoid with outstretched arms
-function ZombieModel() {
+function ZombieModel({ isAttacking }: { isAttacking: boolean }) {
   const leftArmRef = useRef<THREE.Group>(null);
   const rightArmRef = useRef<THREE.Group>(null);
   const leftLegRef = useRef<THREE.Group>(null);
   const rightLegRef = useRef<THREE.Group>(null);
   const headRef = useRef<THREE.Mesh>(null);
+  const torsoRef = useRef<THREE.Mesh>(null);
   const bodyColor = '#5a6820';
   const skinColor = '#8a6840';
   const darkSkin = '#5a3820';
@@ -25,7 +27,9 @@ function ZombieModel() {
     const t = state.clock.elapsedTime;
     const swing = Math.sin(t * 4) * 0.4;
     if (leftArmRef.current) {
-      leftArmRef.current.rotation.x = swing * 0.5 + 0.45;
+      // Outstretched arms lurch during normal idle, swing wider during attack
+      const attackAdd = isAttacking ? Math.sin(t * 8) * 0.5 : 0;
+      leftArmRef.current.rotation.x = swing * 0.5 + 0.45 + attackAdd;
       leftArmRef.current.rotation.z = 0.15;
     }
     if (rightArmRef.current) {
@@ -37,6 +41,11 @@ function ZombieModel() {
     // Head lolls
     if (headRef.current) {
       headRef.current.rotation.z = Math.sin(t * 3) * 0.06;
+      headRef.current.rotation.x = isAttacking ? Math.sin(t * 8) * 0.08 : 0;
+    }
+    // Body lurch
+    if (torsoRef.current) {
+      torsoRef.current.rotation.x = 0.28 + (isAttacking ? Math.sin(t * 6) * 0.06 : 0);
     }
   });
 
@@ -74,7 +83,7 @@ function ZombieModel() {
       </group>
 
       {/* Hunched torso */}
-      <mesh castShadow position={[0, 0.86, 0]} rotation={[0.28, 0, 0]}>
+      <mesh ref={torsoRef} castShadow position={[0, 0.86, 0]} rotation={[0.28, 0, 0]}>
         <boxGeometry args={[0.66, 0.67, 0.4]} />
         <meshStandardMaterial color={bodyColor} roughness={0.92} />
       </mesh>
@@ -164,7 +173,7 @@ function ZombieModel() {
 }
 
 // Skeleton - fast, white bones, with scythe
-function SkeletonModel() {
+function SkeletonModel({ isAttacking }: { isAttacking: boolean }) {
   const leftArmRef = useRef<THREE.Group>(null);
   const rightArmRef = useRef<THREE.Group>(null);
   const leftLegRef = useRef<THREE.Group>(null);
@@ -176,7 +185,11 @@ function SkeletonModel() {
     const t = state.clock.elapsedTime;
     const swing = Math.sin(t * 6) * 0.55;
     if (leftArmRef.current) leftArmRef.current.rotation.x = swing * 0.7;
-    if (rightArmRef.current) rightArmRef.current.rotation.x = -swing * 0.7;
+    if (rightArmRef.current) {
+      // Scythe arm swings more dramatically when attacking
+      rightArmRef.current.rotation.x = isAttacking ? -swing * 1.4 : -swing * 0.7;
+      rightArmRef.current.rotation.z = isAttacking ? Math.sin(t * 6) * 0.3 : 0;
+    }
     if (leftLegRef.current) leftLegRef.current.rotation.x = swing;
     if (rightLegRef.current) rightLegRef.current.rotation.x = -swing;
   });
@@ -297,7 +310,7 @@ function SkeletonModel() {
 }
 
 // Orc - large, heavy, green with club
-function OrcModel() {
+function OrcModel({ isAttacking }: { isAttacking: boolean }) {
   const leftArmRef = useRef<THREE.Group>(null);
   const rightArmRef = useRef<THREE.Group>(null);
   const leftLegRef = useRef<THREE.Group>(null);
@@ -309,7 +322,12 @@ function OrcModel() {
     const t = state.clock.elapsedTime;
     const swing = Math.sin(t * 3.5) * 0.35;
     if (leftArmRef.current) leftArmRef.current.rotation.x = swing;
-    if (rightArmRef.current) rightArmRef.current.rotation.x = -swing;
+    if (rightArmRef.current) {
+      // Club arm raises and slams when attacking
+      rightArmRef.current.rotation.x = isAttacking
+        ? -Math.abs(Math.sin(t * 6)) * 1.2 - 0.3
+        : -swing;
+    }
     if (leftLegRef.current) leftLegRef.current.rotation.x = swing;
     if (rightLegRef.current) rightLegRef.current.rotation.x = -swing;
   });
@@ -431,7 +449,7 @@ function OrcModel() {
 }
 
 // Demon - fast, red/black with wings and trident
-function DemonModel() {
+function DemonModel({ isAttacking }: { isAttacking: boolean }) {
   const leftArmRef = useRef<THREE.Group>(null);
   const rightArmRef = useRef<THREE.Group>(null);
   const leftLegRef = useRef<THREE.Group>(null);
@@ -444,9 +462,13 @@ function DemonModel() {
   useFrame((state) => {
     const t = state.clock.elapsedTime;
     const swing = Math.sin(t * 7) * 0.45;
-    const wingFlap = Math.sin(t * 4) * 0.3;
+    // Faster wing flap during attack
+    const wingFlap = isAttacking ? Math.sin(t * 9) * 0.6 : Math.sin(t * 4) * 0.3;
     if (leftArmRef.current) leftArmRef.current.rotation.x = swing;
-    if (rightArmRef.current) rightArmRef.current.rotation.x = -swing;
+    if (rightArmRef.current) {
+      // Trident thrust during attack
+      rightArmRef.current.rotation.x = isAttacking ? -Math.sin(t * 7) * 0.8 - 0.5 : -swing;
+    }
     if (leftLegRef.current) leftLegRef.current.rotation.x = swing;
     if (rightLegRef.current) rightLegRef.current.rotation.x = -swing;
     if (leftWingRef.current) leftWingRef.current.rotation.z = wingFlap + 0.3;

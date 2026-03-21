@@ -6,6 +6,7 @@ import { usePlayer } from "../../lib/stores/usePlayer";
 import { useEnemies } from "../../lib/stores/useEnemies";
 import { useLoot } from "../../lib/stores/useLoot";
 import { useAudio } from "../../lib/stores/useAudio";
+import { useVFX } from "../../lib/stores/useVFX";
 import { checkCollision } from "../../lib/gameUtils";
 
 // Match the attack cooldown defined in the player store so mouse-held auto-fire
@@ -23,6 +24,10 @@ export default function Player() {
   const weaponRef = useRef<THREE.Group>(null);
   const auraRef = useRef<THREE.Mesh>(null);
   const capeRef = useRef<THREE.Mesh>(null);
+  // Extra visual refs
+  const chestGemRef = useRef<THREE.Mesh>(null);
+  const weaponGlowRef = useRef<THREE.PointLight>(null);
+  const playerLightRef = useRef<THREE.PointLight>(null);
 
   // For mouse-aim raycasting
   const aimTargetRef = useRef<THREE.Vector3>(new THREE.Vector3(0, 0, -1));
@@ -52,12 +57,19 @@ export default function Player() {
   const { enemies, damageEnemy } = useEnemies();
   const { items, removeItem } = useLoot();
   const { playHit } = useAudio();
+  const { addEffect } = useVFX();
 
   const isMoving = useRef(false);
   const isAttacking = useRef(false);
   const attackTime = useRef(0);
   const isMouseDown = useRef(false);
   const lastAutoFireTime = useRef(0);
+
+  // Health & level tracking for visual effects
+  const prevHealthRef = useRef(100);
+  const hitFlashTimeRef = useRef(-999);
+  const prevLevelRef = useRef(1);
+  const lastAbilityFlashRef = useRef(-999);
 
   // Track mouse button state for auto-fire
   useEffect(() => {
@@ -161,17 +173,35 @@ export default function Player() {
       isAttacking.current = true;
       attackTime.current = t;
     }
-    if (keys.ability1) castAbility(1, aimDirObj);
-    if (keys.ability2) castAbility(2, aimDirObj);
-    if (keys.ability3) castAbility(3, aimDirObj);
+    if (keys.ability1) { castAbility(1, aimDirObj); lastAbilityFlashRef.current = t; addEffect({ type: "ability", position, color: "#44aaff" }); }
+    if (keys.ability2) { castAbility(2, aimDirObj); lastAbilityFlashRef.current = t; addEffect({ type: "ability", position, color: "#aa44ff" }); }
+    if (keys.ability3) { castAbility(3, aimDirObj); lastAbilityFlashRef.current = t; addEffect({ type: "ability", position, color: "#ff4444" }); }
 
     // ── Update group position ─────────────────────────────────────────────────
     groupRef.current.position.set(position.x, position.y, position.z);
 
+    // ── Detect damage taken → player hit flash ────────────────────────────────
+    if (health < prevHealthRef.current) {
+      hitFlashTimeRef.current = t;
+    }
+    prevHealthRef.current = health;
+
+    // ── Detect level up → level-up VFX ────────────────────────────────────────
+    if (level > prevLevelRef.current) {
+      prevLevelRef.current = level;
+      addEffect({ type: "levelup", position, color: "#ffdd00" });
+    }
+
     // ── Walking / running animations ─────────────────────────────────────────
     const walkSpeed = 6;
-    const walkSwing = Math.sin(t * walkSpeed) * (moving ? 0.55 : 0);
-    const walkBob = moving ? Math.abs(Math.sin(t * walkSpeed)) * 0.06 : 0;
+    // Distinguish running (both horizontal keys) vs walking
+    const diagonal = (keys.forward || keys.backward) && (keys.leftward || keys.rightward);
+    const runMultiplier = diagonal ? 1.0 : (moving ? 1.3 : 0);
+    const walkSwing = Math.sin(t * walkSpeed * runMultiplier) * (moving ? 0.6 : 0);
+    const walkBob = moving ? Math.abs(Math.sin(t * walkSpeed * runMultiplier)) * 0.07 : 0;
+
+    // Idle breathing when still
+    const breathScale = moving ? 1 : 1 + Math.sin(t * 1.2) * 0.018;
 
     // Leg swing
     if (leftLegRef.current) leftLegRef.current.rotation.x = walkSwing;
@@ -179,19 +209,29 @@ export default function Player() {
 
     // Arm swing (opposite to legs) — except during attack
     if (!isAttacking.current) {
-      if (leftArmRef.current) leftArmRef.current.rotation.x = -walkSwing * 0.6;
-      if (rightArmRef.current) rightArmRef.current.rotation.x = walkSwing * 0.6;
+      if (leftArmRef.current) {
+        leftArmRef.current.rotation.x = -walkSwing * 0.65;
+        // Subtle idle arm drift
+        if (!moving) leftArmRef.current.rotation.z = -0.05 + Math.sin(t * 0.8) * 0.02;
+      }
+      if (rightArmRef.current) {
+        rightArmRef.current.rotation.x = walkSwing * 0.65;
+        if (!moving) rightArmRef.current.rotation.z = 0.05 + Math.sin(t * 0.8 + 1) * 0.02;
+      }
     }
 
-    // Body bob
+    // Body bob + breathing scale
     if (torsoRef.current) {
       torsoRef.current.position.y = walkBob;
+      torsoRef.current.scale.y = breathScale;
+      // Subtle forward lean when moving
+      torsoRef.current.rotation.x = moving ? THREE.MathUtils.lerp(torsoRef.current.rotation.x, -0.08, 0.06) : THREE.MathUtils.lerp(torsoRef.current.rotation.x, 0, 0.05);
     }
 
     // Head idle sway
     if (headRef.current) {
-      headRef.current.rotation.y = Math.sin(t * 1.5) * (moving ? 0.04 : 0.02);
-      headRef.current.rotation.x = moving ? Math.sin(t * walkSpeed * 0.5) * 0.02 : 0;
+      headRef.current.rotation.y = moving ? Math.sin(t * 1.5) * 0.04 : Math.sin(t * 1.1) * 0.025;
+      headRef.current.rotation.x = moving ? Math.sin(t * walkSpeed * 0.5) * 0.02 : Math.sin(t * 0.7) * 0.01;
     }
 
     // ── Attack swing animation ────────────────────────────────────────────────
@@ -200,32 +240,73 @@ export default function Player() {
       const elapsed = t - attackTime.current;
       if (elapsed < attackDuration) {
         const progress = elapsed / attackDuration;
-        const swing = Math.sin(progress * Math.PI) * 1.4;
-        if (rightArmRef.current) rightArmRef.current.rotation.x = -swing;
+        const swing = Math.sin(progress * Math.PI) * 1.5;
+        if (rightArmRef.current) {
+          rightArmRef.current.rotation.x = -swing;
+          // Side sweep component for more natural motion
+          rightArmRef.current.rotation.z = swing * 0.2;
+        }
         if (weaponRef.current) weaponRef.current.rotation.x = -swing * 0.5;
+        // Weapon glow spikes on attack
+        if (weaponGlowRef.current) {
+          weaponGlowRef.current.intensity = 1.0 + swing * 2;
+        }
       } else {
         isAttacking.current = false;
+        if (rightArmRef.current) rightArmRef.current.rotation.z = 0;
+        if (weaponGlowRef.current) weaponGlowRef.current.intensity = 1.0;
       }
     }
 
     // ── Cape physics: lag behind movement + sway ──────────────────────────────
     if (capeRef.current) {
-      const capeSwing = moving ? Math.sin(t * walkSpeed * 0.5) * 0.08 : 0;
-      const capeLag = moving ? 0.12 : 0.04;
-      capeRef.current.rotation.x = THREE.MathUtils.lerp(
-        capeRef.current.rotation.x,
-        capeLag,
-        0.1
-      );
-      capeRef.current.rotation.z = capeSwing;
+      const capeSwing = moving ? Math.sin(t * walkSpeed * 0.5) * 0.1 : Math.sin(t * 0.6) * 0.03;
+      const capeLag = moving ? 0.14 : 0.04;
+      capeRef.current.rotation.x = THREE.MathUtils.lerp(capeRef.current.rotation.x, capeLag, 0.08);
+      capeRef.current.rotation.z = THREE.MathUtils.lerp(capeRef.current.rotation.z, capeSwing, 0.1);
     }
 
     // ── Aura pulse animation ──────────────────────────────────────────────────
     if (auraRef.current) {
-      const pulse = 1 + Math.sin(t * 2.5) * 0.12;
-      auraRef.current.scale.setScalar(pulse);
-      (auraRef.current.material as THREE.MeshBasicMaterial).opacity =
-        0.07 + Math.sin(t * 3.5) * 0.04;
+      const hitAge = t - hitFlashTimeRef.current;
+      const abilityAge = t - lastAbilityFlashRef.current;
+      const hitFlashActive = hitAge < 0.4;
+      const abilityFlashActive = abilityAge < 0.5;
+
+      let auraOpacity = 0.07 + Math.sin(t * 3.5) * 0.04;
+      let auraScale = 1 + Math.sin(t * 2.5) * 0.12;
+
+      if (hitFlashActive) {
+        // Red flash on damage
+        const flashT = 1 - hitAge / 0.4;
+        (auraRef.current.material as THREE.MeshBasicMaterial).color.set(
+          flashT > 0.5 ? "#ff2200" : armorColor
+        );
+        auraOpacity = Math.max(auraOpacity, flashT * 0.25);
+        auraScale = 1 + flashT * 0.15;
+      } else if (abilityFlashActive) {
+        // Color flash on ability
+        const flashT = 1 - abilityAge / 0.5;
+        (auraRef.current.material as THREE.MeshBasicMaterial).color.set("#44aaff");
+        auraOpacity = Math.max(auraOpacity, flashT * 0.2);
+        auraScale = 1 + flashT * 0.18;
+      } else {
+        (auraRef.current.material as THREE.MeshBasicMaterial).color.set(armorColor);
+      }
+
+      auraRef.current.scale.setScalar(auraScale);
+      (auraRef.current.material as THREE.MeshBasicMaterial).opacity = auraOpacity;
+    }
+
+    // ── Chest gem pulse ───────────────────────────────────────────────────────
+    if (chestGemRef.current) {
+      const gemMat = chestGemRef.current.material as THREE.MeshStandardMaterial;
+      gemMat.emissiveIntensity = 0.5 + Math.sin(t * 4) * 0.3;
+    }
+
+    // ── Player ambient light – breathes with mana ─────────────────────────────
+    if (playerLightRef.current) {
+      playerLightRef.current.intensity = 0.5 + Math.sin(t * 2) * 0.15 + (mana / 50) * 0.2;
     }
 
     // ── Isometric camera follow ───────────────────────────────────────────────
@@ -331,7 +412,7 @@ export default function Player() {
         <meshStandardMaterial color={armorColor} roughness={0.2} metalness={0.7} emissive={armorColor} emissiveIntensity={0.08} />
       </mesh>
       {/* Center chest gem */}
-      <mesh castShadow position={[0, 1.12, 0.24]}>
+      <mesh ref={chestGemRef} castShadow position={[0, 1.12, 0.24]}>
         <octahedronGeometry args={[0.07]} />
         <meshStandardMaterial color={armorColor} roughness={0.05} metalness={0.1} emissive={armorColor} emissiveIntensity={0.6} />
       </mesh>
@@ -463,7 +544,7 @@ export default function Player() {
                 <meshStandardMaterial color="#9a8a60" roughness={0.25} metalness={0.85} />
               </mesh>
               {/* Weapon glow */}
-              <pointLight color={weaponColor} intensity={1.0} distance={3} />
+              <pointLight ref={weaponGlowRef} color={weaponColor} intensity={1.0} distance={3} />
             </>
           ) : (
             /* Bare hand / fist indicator */
@@ -553,6 +634,7 @@ export default function Player() {
 
       {/* Player ambient point light */}
       <pointLight
+        ref={playerLightRef}
         position={[0, 1, 0]}
         intensity={0.7}
         color={armorColor}
