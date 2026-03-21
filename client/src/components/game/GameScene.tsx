@@ -1,5 +1,5 @@
 import { useFrame, useThree } from "@react-three/fiber";
-import { useRef } from "react";
+import { useRef, useMemo } from "react";
 import * as THREE from "three";
 import Player from "./Player";
 import Dungeon from "./Dungeon";
@@ -9,6 +9,53 @@ import Projectile from "./Projectile";
 import { useEnemies } from "../../lib/stores/useEnemies";
 import { useLoot } from "../../lib/stores/useLoot";
 import { usePlayer } from "../../lib/stores/usePlayer";
+
+// Aim cursor that follows the mouse pointer on the ground plane
+function AimCursor() {
+  const cursorRef = useRef<THREE.Group>(null);
+  const ringRef = useRef<THREE.Mesh>(null);
+  const groundPlane = useMemo(() => new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), []);
+  const target = useMemo(() => new THREE.Vector3(), []);
+  const { raycaster, pointer, camera } = useThree();
+
+  useFrame((state) => {
+    raycaster.setFromCamera(pointer, camera);
+    const hit = raycaster.ray.intersectPlane(groundPlane, target);
+    if (hit && cursorRef.current) {
+      cursorRef.current.position.set(target.x, 0.02, target.z);
+    }
+    // Rotate outer ring
+    if (ringRef.current) {
+      ringRef.current.rotation.z += 0.04;
+    }
+  });
+
+  return (
+    <group ref={cursorRef}>
+      {/* Inner dot */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]}>
+        <circleGeometry args={[0.08, 12]} />
+        <meshBasicMaterial color="#ffffff" transparent opacity={0.8} />
+      </mesh>
+      {/* Crosshair arms */}
+      {[0, Math.PI / 2, Math.PI, (3 * Math.PI) / 2].map((angle, i) => (
+        <mesh
+          key={i}
+          rotation={[-Math.PI / 2, 0, angle]}
+          position={[Math.cos(angle) * 0.18, 0, Math.sin(angle) * 0.18]}
+        >
+          <planeGeometry args={[0.06, 0.14]} />
+          <meshBasicMaterial color="#ffffff" transparent opacity={0.7} />
+        </mesh>
+      ))}
+      {/* Outer spinning ring */}
+      <mesh ref={ringRef} rotation={[-Math.PI / 2, 0, 0]}>
+        <ringGeometry args={[0.22, 0.28, 24]} />
+        <meshBasicMaterial color="#44aaff" transparent opacity={0.55} />
+      </mesh>
+    </group>
+  );
+}
 
 export default function GameScene() {
   const lightRef = useRef<THREE.DirectionalLight>(null);
@@ -86,6 +133,9 @@ export default function GameScene() {
       {/* === GAME OBJECTS === */}
       <Dungeon />
       <Player />
+
+      {/* Aim cursor (mouse-point target indicator) */}
+      <AimCursor />
 
       {/* Enemies */}
       {enemies.map((enemy) => (

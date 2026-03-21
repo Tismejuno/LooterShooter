@@ -42,6 +42,7 @@ export interface Projectile {
   damage: number;
   active: boolean;
   element?: 'fire' | 'ice' | 'lightning' | 'arcane';
+  spawnPosition: Position; // origin used for max-range check
 }
 
 export interface Skill {

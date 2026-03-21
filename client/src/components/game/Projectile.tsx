@@ -106,9 +106,11 @@ export default function Projectile({ projectile }: ProjectileProps) {
         }
       });
 
-      // Remove projectile if it travels too far from origin
-      const totalDist = Math.sqrt(newPos.x ** 2 + newPos.z ** 2);
-      if (totalDist > 35) {
+      // Remove projectile if it travels too far from its spawn origin
+      const dx = newPos.x - projectile.spawnPosition.x;
+      const dz = newPos.z - projectile.spawnPosition.z;
+      const travelDist = Math.sqrt(dx * dx + dz * dz);
+      if (travelDist > 30) {
         removeProjectile(projectile.id);
       }
     }
@@ -158,7 +160,7 @@ export default function Projectile({ projectile }: ProjectileProps) {
       <pointLight
         position={[projectile.position.x, projectile.position.y, projectile.position.z]}
         color={config.lightColor}
-        intensity={element === 'legendary' ? 3 : 1.5}
+        intensity={element === 'arcane' ? 2.5 : 1.5}
         distance={3.5}
       />
 
