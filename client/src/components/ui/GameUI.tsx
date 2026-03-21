@@ -388,7 +388,7 @@ export default function GameUI() {
               burn: '🔥', freeze: '❄️', poison: '☠️', stun: '⚡', slow: '🌀', heal: '💚', shield: '🛡️'
             };
             return (
-              <div key={effect.id} style={{
+              <div key={effect.id} title={effect.type} style={{
                 width: '30px',
                 height: '30px',
                 borderRadius: '50%',
@@ -399,7 +399,6 @@ export default function GameUI() {
                 justifyContent: 'center',
                 fontSize: '14px',
                 boxShadow: '0 2px 8px rgba(0,0,0,0.5)',
-                title: effect.type,
               }}>
                 {icons[effect.type] || '✦'}
               </div>

@@ -40,13 +40,17 @@ interface PlayerState {
   lastAttackTime: number;
   lastAbilityTime: Record<number, number>;
   
+  // Aim direction (set by Player component from mouse raycasting)
+  aimDirection: { x: number; y: number; z: number };
+
   // Actions
   movePlayer: (direction: { x: number; y: number; z: number }) => void;
+  setAimDirection: (direction: { x: number; y: number; z: number }) => void;
   takeDamage: (damage: number) => void;
   gainExperience: (amount: number) => void;
-  attack: () => void;
-  castAbility: (abilityId: number) => void;
-  castSpell: (spellId: string) => void;
+  attack: (direction?: { x: number; y: number; z: number }) => void;
+  castAbility: (abilityId: number, direction?: { x: number; y: number; z: number }) => void;
+  castSpell: (spellId: string, direction?: { x: number; y: number; z: number }) => void;
   collectItem: (item: LootItem) => void;
   equipItem: (item: LootItem) => void;
   unequipItem: (itemId: string) => void;
@@ -111,6 +115,9 @@ export const usePlayer = create<PlayerState>((set, get) => ({
   lastAttackTime: 0,
   lastAbilityTime: {},
 
+  // Default aim forward (-Z)
+  aimDirection: { x: 0, y: 0, z: -1 },
+
   movePlayer: (direction) => {
     set((state) => {
       const speed = 0.2;
@@ -122,6 +129,10 @@ export const usePlayer = create<PlayerState>((set, get) => ({
         }
       };
     });
+  },
+
+  setAimDirection: (direction) => {
+    set({ aimDirection: direction });
   },
 
   takeDamage: (damage) => {
@@ -166,17 +177,21 @@ export const usePlayer = create<PlayerState>((set, get) => ({
     });
   },
 
-  attack: () => {
+  attack: (direction) => {
     const now = Date.now();
     const state = get();
     
     if (now - state.lastAttackTime < 500) return; // Attack cooldown
     
+    // Use provided direction, or current aim direction, or fallback forward
+    const dir = direction || state.aimDirection || { x: 0, y: 0, z: -1 };
+    
     const projectileId = `projectile_${++projectileIdCounter}`;
     const projectile: Projectile = {
       id: projectileId,
       position: { ...state.position },
-      direction: { x: 0, y: 0, z: -1 }, // Forward direction
+      spawnPosition: { ...state.position },
+      direction: dir,
       speed: 20,
       damage: state.stats.strength * 2 + 10,
       active: true
@@ -188,7 +203,7 @@ export const usePlayer = create<PlayerState>((set, get) => ({
     }));
   },
 
-  castAbility: (abilityId) => {
+  castAbility: (abilityId, direction) => {
     const now = Date.now();
     const state = get();
     const lastCast = state.lastAbilityTime[abilityId] || 0;
@@ -203,15 +218,23 @@ export const usePlayer = create<PlayerState>((set, get) => ({
     
     if (state.mana < cost) return;
     
+    // Use provided direction, or current aim direction, or fallback forward
+    const dir = direction || state.aimDirection || { x: 0, y: 0, z: -1 };
+
+    // Ability-specific element mapping
+    const elements: Record<number, Projectile['element']> = { 1: 'fire', 2: 'ice', 3: 'arcane' };
+
     // Create ability projectile
     const projectileId = `ability_${abilityId}_${++projectileIdCounter}`;
     const projectile: Projectile = {
       id: projectileId,
       position: { ...state.position },
-      direction: { x: 0, y: 0, z: -1 },
+      spawnPosition: { ...state.position },
+      direction: dir,
       speed: 15,
       damage: state.stats.intelligence * 3 + 20,
-      active: true
+      active: true,
+      element: elements[abilityId]
     };
     
     set((state) => ({
@@ -358,7 +381,7 @@ export const usePlayer = create<PlayerState>((set, get) => ({
     });
   },
 
-  castSpell: (spellId) => {
+  castSpell: (spellId, direction) => {
     const state = get();
     const spell = state.spells.find(s => s.id === spellId);
     if (!spell) return;
@@ -369,12 +392,16 @@ export const usePlayer = create<PlayerState>((set, get) => ({
     if (now - lastCast < spell.cooldown) return;
     if (state.mana < spell.manaCost) return;
     
+    // Use provided direction, or current aim direction, or fallback forward
+    const dir = direction || state.aimDirection || { x: 0, y: 0, z: -1 };
+
     const projectileId = `spell_${spellId}_${++projectileIdCounter}`;
     const element = spell.element === 'holy' ? 'arcane' : spell.element; // Convert holy to arcane for projectile
     const projectile: Projectile = {
       id: projectileId,
       position: { ...state.position },
-      direction: { x: 0, y: 0, z: -1 },
+      spawnPosition: { ...state.position },
+      direction: dir,
       speed: 15,
       damage: spell.damage || 0,
       active: true,
