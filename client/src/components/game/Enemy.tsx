@@ -9,105 +9,156 @@ interface EnemyProps {
   enemy: EnemyType;
 }
 
-// Zombie - slow, rotting green-brown humanoid with internal animation
+// Zombie - slow, rotting green-brown humanoid with outstretched arms
 function ZombieModel() {
   const leftArmRef = useRef<THREE.Group>(null);
   const rightArmRef = useRef<THREE.Group>(null);
   const leftLegRef = useRef<THREE.Group>(null);
   const rightLegRef = useRef<THREE.Group>(null);
-  const bodyColor = '#6b7a2a';
-  const skinColor = '#7a6040';
+  const headRef = useRef<THREE.Mesh>(null);
+  const bodyColor = '#5a6820';
+  const skinColor = '#8a6840';
+  const darkSkin = '#5a3820';
   const eyeColor = '#ff4400';
 
   useFrame((state) => {
     const t = state.clock.elapsedTime;
     const swing = Math.sin(t * 4) * 0.4;
     if (leftArmRef.current) {
-      leftArmRef.current.rotation.x = swing * 0.5 + 0.4;
+      leftArmRef.current.rotation.x = swing * 0.5 + 0.45;
+      leftArmRef.current.rotation.z = 0.15;
     }
     if (rightArmRef.current) {
-      rightArmRef.current.rotation.x = -swing * 0.5 - 0.2;
+      rightArmRef.current.rotation.x = -swing * 0.5 + 0.35;
+      rightArmRef.current.rotation.z = -0.12;
     }
-    if (leftLegRef.current) {
-      leftLegRef.current.rotation.x = swing;
-    }
-    if (rightLegRef.current) {
-      rightLegRef.current.rotation.x = -swing;
+    if (leftLegRef.current) leftLegRef.current.rotation.x = swing;
+    if (rightLegRef.current) rightLegRef.current.rotation.x = -swing;
+    // Head lolls
+    if (headRef.current) {
+      headRef.current.rotation.z = Math.sin(t * 3) * 0.06;
     }
   });
 
   return (
     <group>
+      {/* Legs */}
+      <group ref={leftLegRef} position={[-0.17, 0.5, 0]}>
+        <mesh castShadow position={[0, -0.2, 0]}>
+          <cylinderGeometry args={[0.11, 0.1, 0.48, 8]} />
+          <meshStandardMaterial color="#3a3010" roughness={0.95} />
+        </mesh>
+        <mesh castShadow position={[0, -0.48, 0]}>
+          <cylinderGeometry args={[0.1, 0.09, 0.44, 8]} />
+          <meshStandardMaterial color="#3a3010" roughness={0.95} />
+        </mesh>
+        {/* Foot */}
+        <mesh castShadow position={[0, -0.72, 0.05]}>
+          <boxGeometry args={[0.14, 0.1, 0.24]} />
+          <meshStandardMaterial color="#2a2008" roughness={0.97} />
+        </mesh>
+      </group>
+      <group ref={rightLegRef} position={[0.17, 0.5, 0]}>
+        <mesh castShadow position={[0, -0.2, 0]}>
+          <cylinderGeometry args={[0.11, 0.1, 0.48, 8]} />
+          <meshStandardMaterial color="#3a3010" roughness={0.95} />
+        </mesh>
+        <mesh castShadow position={[0, -0.48, 0]}>
+          <cylinderGeometry args={[0.1, 0.09, 0.44, 8]} />
+          <meshStandardMaterial color="#3a3010" roughness={0.95} />
+        </mesh>
+        <mesh castShadow position={[0, -0.72, 0.05]}>
+          <boxGeometry args={[0.14, 0.1, 0.24]} />
+          <meshStandardMaterial color="#2a2008" roughness={0.97} />
+        </mesh>
+      </group>
+
       {/* Hunched torso */}
-      <mesh castShadow position={[0, 0.85, 0]} rotation={[0.3, 0, 0]}>
-        <boxGeometry args={[0.65, 0.65, 0.38]} />
-        <meshStandardMaterial color={bodyColor} roughness={0.9} />
+      <mesh castShadow position={[0, 0.86, 0]} rotation={[0.28, 0, 0]}>
+        <boxGeometry args={[0.66, 0.67, 0.4]} />
+        <meshStandardMaterial color={bodyColor} roughness={0.92} />
       </mesh>
-      {/* Left arm (dangling) */}
-      <group ref={leftArmRef} position={[-0.38, 0.9, 0.1]}>
+      {/* Torn shirt patches */}
+      <mesh position={[0.18, 0.82, 0.21]} rotation={[0.28, 0, 0.2]}>
+        <boxGeometry args={[0.22, 0.28, 0.01]} />
+        <meshStandardMaterial color={darkSkin} roughness={0.97} />
+      </mesh>
+      <mesh position={[-0.15, 0.9, 0.21]} rotation={[0.28, 0, -0.15]}>
+        <boxGeometry args={[0.18, 0.2, 0.01]} />
+        <meshStandardMaterial color={darkSkin} roughness={0.97} />
+      </mesh>
+
+      {/* Left arm (reaching forward/dangling) */}
+      <group ref={leftArmRef} position={[-0.39, 0.92, 0.1]}>
         <mesh castShadow position={[0, -0.22, 0]}>
-          <cylinderGeometry args={[0.09, 0.08, 0.45, 8]} />
-          <meshStandardMaterial color={skinColor} roughness={0.9} />
+          <cylinderGeometry args={[0.09, 0.08, 0.46, 8]} />
+          <meshStandardMaterial color={skinColor} roughness={0.92} />
         </mesh>
         <mesh castShadow position={[0, -0.5, 0]}>
-          <cylinderGeometry args={[0.08, 0.07, 0.38, 8]} />
-          <meshStandardMaterial color={skinColor} roughness={0.9} />
+          <cylinderGeometry args={[0.08, 0.07, 0.4, 8]} />
+          <meshStandardMaterial color={skinColor} roughness={0.92} />
         </mesh>
+        {/* Clawed hand */}
+        <mesh castShadow position={[0, -0.72, 0]}>
+          <sphereGeometry args={[0.08, 8, 8]} />
+          <meshStandardMaterial color={darkSkin} roughness={0.9} />
+        </mesh>
+        {/* Claws */}
+        {[-0.04, 0, 0.04].map((x, i) => (
+          <mesh key={i} castShadow position={[x, -0.82, 0.04]}>
+            <coneGeometry args={[0.015, 0.08, 4]} />
+            <meshStandardMaterial color="#1a0a00" roughness={0.8} />
+          </mesh>
+        ))}
       </group>
-      {/* Right arm (reaching forward) */}
-      <group ref={rightArmRef} position={[0.38, 0.9, 0.1]}>
+      {/* Right arm */}
+      <group ref={rightArmRef} position={[0.39, 0.92, 0.1]}>
         <mesh castShadow position={[0, -0.22, 0]}>
-          <cylinderGeometry args={[0.09, 0.08, 0.45, 8]} />
-          <meshStandardMaterial color={skinColor} roughness={0.9} />
+          <cylinderGeometry args={[0.09, 0.08, 0.46, 8]} />
+          <meshStandardMaterial color={skinColor} roughness={0.92} />
         </mesh>
         <mesh castShadow position={[0, -0.5, 0]}>
-          <cylinderGeometry args={[0.08, 0.07, 0.38, 8]} />
-          <meshStandardMaterial color={skinColor} roughness={0.9} />
+          <cylinderGeometry args={[0.08, 0.07, 0.4, 8]} />
+          <meshStandardMaterial color={skinColor} roughness={0.92} />
         </mesh>
+        <mesh castShadow position={[0, -0.72, 0]}>
+          <sphereGeometry args={[0.08, 8, 8]} />
+          <meshStandardMaterial color={darkSkin} roughness={0.9} />
+        </mesh>
+        {[-0.04, 0, 0.04].map((x, i) => (
+          <mesh key={i} castShadow position={[x, -0.82, 0.04]}>
+            <coneGeometry args={[0.015, 0.08, 4]} />
+            <meshStandardMaterial color="#1a0a00" roughness={0.8} />
+          </mesh>
+        ))}
       </group>
-      {/* Left leg */}
-      <group ref={leftLegRef} position={[-0.18, 0.5, 0]}>
-        <mesh castShadow position={[0, -0.2, 0]}>
-          <cylinderGeometry args={[0.12, 0.1, 0.5, 8]} />
-          <meshStandardMaterial color="#3a3010" roughness={0.9} />
-        </mesh>
-        <mesh castShadow position={[0, -0.48, 0]}>
-          <cylinderGeometry args={[0.1, 0.09, 0.42, 8]} />
-          <meshStandardMaterial color="#3a3010" roughness={0.9} />
-        </mesh>
-      </group>
-      {/* Right leg */}
-      <group ref={rightLegRef} position={[0.18, 0.5, 0]}>
-        <mesh castShadow position={[0, -0.2, 0]}>
-          <cylinderGeometry args={[0.12, 0.1, 0.5, 8]} />
-          <meshStandardMaterial color="#3a3010" roughness={0.9} />
-        </mesh>
-        <mesh castShadow position={[0, -0.48, 0]}>
-          <cylinderGeometry args={[0.1, 0.09, 0.42, 8]} />
-          <meshStandardMaterial color="#3a3010" roughness={0.9} />
-        </mesh>
-      </group>
+
       {/* Head */}
-      <mesh castShadow position={[0, 1.35, 0.08]} rotation={[0.2, 0, 0]}>
-        <boxGeometry args={[0.4, 0.4, 0.38]} />
-        <meshStandardMaterial color={skinColor} roughness={0.9} />
+      <mesh ref={headRef} castShadow position={[0, 1.37, 0.09]} rotation={[0.22, 0, 0]}>
+        <boxGeometry args={[0.42, 0.42, 0.4]} />
+        <meshStandardMaterial color={skinColor} roughness={0.92} />
       </mesh>
       {/* Zombie eyes */}
-      <mesh position={[-0.1, 1.39, 0.28]}>
-        <sphereGeometry args={[0.06, 8, 8]} />
-        <meshStandardMaterial color={eyeColor} emissive={eyeColor} emissiveIntensity={1.5} />
+      <mesh position={[-0.1, 1.41, 0.3]}>
+        <sphereGeometry args={[0.065, 10, 10]} />
+        <meshStandardMaterial color={eyeColor} emissive={eyeColor} emissiveIntensity={2.0} />
       </mesh>
-      <mesh position={[0.1, 1.39, 0.28]}>
-        <sphereGeometry args={[0.06, 8, 8]} />
-        <meshStandardMaterial color={eyeColor} emissive={eyeColor} emissiveIntensity={1.5} />
+      <mesh position={[0.1, 1.41, 0.3]}>
+        <sphereGeometry args={[0.065, 10, 10]} />
+        <meshStandardMaterial color={eyeColor} emissive={eyeColor} emissiveIntensity={2.0} />
+      </mesh>
+      {/* Exposed jaw */}
+      <mesh castShadow position={[0, 1.22, 0.18]} rotation={[0.22, 0, 0]}>
+        <boxGeometry args={[0.28, 0.1, 0.18]} />
+        <meshStandardMaterial color={darkSkin} roughness={0.92} />
       </mesh>
       {/* Messy hair */}
-      <mesh castShadow position={[0, 1.53, 0.06]}>
-        <boxGeometry args={[0.44, 0.1, 0.4]} />
-        <meshStandardMaterial color="#1a0a00" roughness={1} />
+      <mesh castShadow position={[0, 1.56, 0.06]}>
+        <boxGeometry args={[0.46, 0.1, 0.42]} />
+        <meshStandardMaterial color="#1a0a00" roughness={1.0} />
       </mesh>
       {/* Eye glow */}
-      <pointLight position={[0, 1.35, 0.3]} color={eyeColor} intensity={0.4} distance={2} />
+      <pointLight position={[0, 1.37, 0.32]} color={eyeColor} intensity={0.5} distance={2.5} />
     </group>
   );
 }
@@ -537,11 +588,34 @@ export default function Enemy({ enemy }: EnemyProps) {
   const groupRef = useRef<THREE.Group>(null);
   const healthBarRef = useRef<THREE.Mesh>(null);
   const healthFillRef = useRef<THREE.Mesh>(null);
+  const hpPulseRef = useRef<THREE.Mesh>(null);
   const { position: playerPosition } = usePlayer();
   const { moveEnemy } = useEnemies();
 
+  // Hit-flash tracking
+  const prevHealthRef = useRef(enemy.health);
+  const hitFlashTimeRef = useRef(-999);
+  const idlePhaseRef = useRef(Math.random() * Math.PI * 2); // random idle offset per enemy
+
   useFrame((state) => {
     if (!groupRef.current || enemy.health <= 0) return;
+    const t = state.clock.elapsedTime;
+
+    // Detect damage taken → trigger flash
+    if (enemy.health < prevHealthRef.current) {
+      hitFlashTimeRef.current = t;
+    }
+    prevHealthRef.current = enemy.health;
+
+    // Hit flash: briefly scale up and emit bright red
+    const flashAge = t - hitFlashTimeRef.current;
+    const flashing = flashAge < 0.25;
+    if (flashing) {
+      const flashIntensity = 1 - flashAge / 0.25;
+      groupRef.current.scale.setScalar(1 + flashIntensity * 0.06);
+    } else {
+      groupRef.current.scale.setScalar(1);
+    }
 
     // Move toward player
     const direction = new THREE.Vector3()
@@ -563,10 +637,18 @@ export default function Enemy({ enemy }: EnemyProps) {
     moveEnemy(enemy.id, newPos);
     groupRef.current.position.set(newPos.x, newPos.y, newPos.z);
 
-    // Face direction of movement (use small threshold only to avoid jitter at exact overlap)
+    // Idle sway / bobbing
+    const idleSwayY = Math.sin(t * 1.8 + idlePhaseRef.current) * 0.012;
+    groupRef.current.position.y = newPos.y + idleSwayY;
+
+    // Face direction of movement
     if (dist > 0.1) {
       const angle = Math.atan2(direction.x, direction.z);
-      groupRef.current.rotation.y = angle;
+      groupRef.current.rotation.y = THREE.MathUtils.lerp(
+        groupRef.current.rotation.y,
+        angle,
+        0.12
+      );
     }
 
     // Health bar always faces camera
@@ -575,6 +657,18 @@ export default function Enemy({ enemy }: EnemyProps) {
     }
     if (healthFillRef.current) {
       healthFillRef.current.lookAt(state.camera.position);
+    }
+
+    // Low HP pulse glow
+    const healthPercent = enemy.health / enemy.maxHealth;
+    if (hpPulseRef.current) {
+      hpPulseRef.current.lookAt(state.camera.position);
+      const pulseMat = hpPulseRef.current.material as THREE.MeshBasicMaterial;
+      if (healthPercent < 0.25) {
+        pulseMat.opacity = 0.5 + Math.sin(t * 8) * 0.3;
+      } else {
+        pulseMat.opacity = 0;
+      }
     }
   });
 
@@ -588,6 +682,11 @@ export default function Enemy({ enemy }: EnemyProps) {
     : enemy.type === 'skeleton' ? '#00ffcc'
     : '#66ff00';
 
+  // Health bar width shrinks with health
+  const barFullW = 1.3;
+  const barFillW = healthPercent * barFullW;
+  const barFillOffset = -(barFullW - barFillW) / 2;
+
   return (
     <group ref={groupRef} position={[enemy.position.x, enemy.position.y, enemy.position.z]}>
       {/* Enemy model by type */}
@@ -597,25 +696,35 @@ export default function Enemy({ enemy }: EnemyProps) {
       {enemy.type === 'demon' && <DemonModel />}
       {!['zombie', 'skeleton', 'orc', 'demon'].includes(enemy.type) && <ZombieModel />}
 
-      {/* Health bar background */}
-      <mesh ref={healthBarRef} position={[0, 2.7, 0]}>
-        <planeGeometry args={[1.2, 0.13]} />
-        <meshBasicMaterial color="#220000" transparent opacity={0.9} side={THREE.DoubleSide} />
+      {/* ── HEALTH BAR ──────────────────────────────────────────────── */}
+      {/* Bar border/shadow */}
+      <mesh ref={healthBarRef} position={[0, 2.82, 0]}>
+        <planeGeometry args={[barFullW + 0.08, 0.2]} />
+        <meshBasicMaterial color="#000000" transparent opacity={0.75} side={THREE.DoubleSide} />
       </mesh>
-
-      {/* Health bar fill - offset so it shrinks from right */}
+      {/* Bar background */}
+      <mesh position={[0, 2.82, 0.005]}>
+        <planeGeometry args={[barFullW, 0.14]} />
+        <meshBasicMaterial color="#330000" transparent opacity={0.9} side={THREE.DoubleSide} />
+      </mesh>
+      {/* Bar fill */}
       <mesh
         ref={healthFillRef}
-        position={[-(1.2 - healthPercent * 1.2) / 2, 2.7, 0.01]}
+        position={[barFillOffset, 2.82, 0.01]}
       >
-        <planeGeometry args={[healthPercent * 1.2, 0.1]} />
-        <meshBasicMaterial color={hpColor} transparent opacity={0.95} side={THREE.DoubleSide} />
+        <planeGeometry args={[barFillW, 0.12]} />
+        <meshBasicMaterial color={hpColor} transparent opacity={0.97} side={THREE.DoubleSide} />
+      </mesh>
+      {/* Enemy name/type tag */}
+      <mesh position={[0, 2.98, 0]}>
+        <planeGeometry args={[0.14, 0.14]} />
+        <meshBasicMaterial color={typeIndicatorColor} side={THREE.DoubleSide} />
       </mesh>
 
-      {/* Type indicator dot */}
-      <mesh position={[0, 2.88, 0]}>
-        <ringGeometry args={[0.06, 0.09, 8]} />
-        <meshBasicMaterial color={typeIndicatorColor} side={THREE.DoubleSide} />
+      {/* Low-health danger pulse */}
+      <mesh ref={hpPulseRef} position={[0, 2.82, 0.02]}>
+        <planeGeometry args={[barFullW + 0.14, 0.24]} />
+        <meshBasicMaterial color="#ff2200" transparent opacity={0} side={THREE.DoubleSide} />
       </mesh>
     </group>
   );

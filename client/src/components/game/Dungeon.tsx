@@ -82,8 +82,9 @@ export default function Dungeon() {
             <planeGeometry args={[room.width, room.height]} />
             <meshStandardMaterial
               map={asphaltTexture}
-              roughness={0.7}
-              color="#303030"
+              roughness={0.65}
+              metalness={0.05}
+              color="#282828"
             />
           </mesh>
           {/* Room border / baseboard */}
@@ -93,7 +94,15 @@ export default function Dungeon() {
             rotation={[-Math.PI / 2, 0, 0]}
           >
             <planeGeometry args={[room.width + 0.4, room.height + 0.4]} />
-            <meshStandardMaterial color="#1a1a1a" roughness={0.9} />
+            <meshStandardMaterial color="#141414" roughness={0.9} />
+          </mesh>
+          {/* Floor center rune glow */}
+          <mesh
+            position={[room.x, -0.43, room.z]}
+            rotation={[-Math.PI / 2, 0, index * 0.7]}
+          >
+            <ringGeometry args={[0.8, 1.0, 12]} />
+            <meshBasicMaterial color="#2a1a66" transparent opacity={0.18} side={THREE.DoubleSide} />
           </mesh>
         </group>
       ))}
