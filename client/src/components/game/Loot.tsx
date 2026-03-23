@@ -188,26 +188,59 @@ function ConsumableModel({ color, emissiveIntensity }: { color: string; emissive
 export default function Loot({ item }: LootProps) {
   const groupRef = useRef<THREE.Group>(null);
   const auraRef = useRef<THREE.Mesh>(null);
+  const beamRef = useRef<THREE.Mesh>(null);
+  const groundRingRef = useRef<THREE.Mesh>(null);
+  const orbitRingRef = useRef<THREE.Mesh>(null);
 
   const color = getRarityColor(item.rarity);
   const emissiveIntensity = getRarityEmissiveIntensity(item.rarity);
   const lightIntensity = getLightIntensity(item.rarity);
 
+  const isRare = item.rarity === 'rare' || item.rarity === 'epic' || item.rarity === 'legendary';
+  const isEpicPlus = item.rarity === 'epic' || item.rarity === 'legendary';
+  const isLegendary = item.rarity === 'legendary';
+
   useFrame((state) => {
+    const t = state.clock.elapsedTime;
+
     if (groupRef.current) {
-      // Floating animation
-      groupRef.current.position.y = item.position.y + Math.sin(state.clock.elapsedTime * 2) * 0.18;
-      
-      // Rotation animation
-      groupRef.current.rotation.y = state.clock.elapsedTime * 0.8;
+      // Floating: legendary bobs higher + faster
+      const floatAmp = isLegendary ? 0.26 : isEpicPlus ? 0.2 : 0.15;
+      const floatSpeed = isLegendary ? 2.5 : 2.0;
+      groupRef.current.position.y = item.position.y + Math.sin(t * floatSpeed) * floatAmp;
+
+      // Rotation: legendary spins faster
+      const rotSpeed = isLegendary ? 1.4 : isEpicPlus ? 1.0 : 0.7;
+      groupRef.current.rotation.y = t * rotSpeed;
     }
 
     // Aura pulse for epic/legendary
     if (auraRef.current) {
-      const pulse = 1 + Math.sin(state.clock.elapsedTime * 3) * 0.12;
+      const pulse = 1 + Math.sin(t * (isLegendary ? 4 : 3)) * (isLegendary ? 0.18 : 0.12);
       auraRef.current.scale.setScalar(pulse);
       (auraRef.current.material as THREE.MeshBasicMaterial).opacity =
-        0.06 + Math.sin(state.clock.elapsedTime * 2) * 0.04;
+        (isLegendary ? 0.12 : 0.07) + Math.sin(t * 2.5) * 0.04;
+    }
+
+    // Beam pulse for rare+
+    if (beamRef.current) {
+      (beamRef.current.material as THREE.MeshBasicMaterial).opacity =
+        0.1 + Math.sin(t * 3 + 1) * 0.06;
+    }
+
+    // Ground beacon ring spins
+    if (groundRingRef.current) {
+      groundRingRef.current.rotation.z = t * (isLegendary ? 2.5 : 1.5);
+      (groundRingRef.current.material as THREE.MeshBasicMaterial).opacity =
+        0.2 + Math.sin(t * 2) * 0.1;
+    }
+
+    // Orbit ring spins in opposite direction for legendary
+    if (orbitRingRef.current) {
+      orbitRingRef.current.rotation.z = -t * 2.0;
+      orbitRingRef.current.rotation.x = Math.sin(t * 0.8) * 0.4;
+      (orbitRingRef.current.material as THREE.MeshBasicMaterial).opacity =
+        0.15 + Math.sin(t * 3.5) * 0.08;
     }
   });
 
@@ -228,38 +261,53 @@ export default function Loot({ item }: LootProps) {
 
   return (
     <group>
+      {/* Item model group (floats and rotates) */}
       <group ref={groupRef} position={[item.position.x, item.position.y, item.position.z]}>
         {renderModel()}
       </group>
 
-      {/* Ground beacon */}
-      <mesh position={[item.position.x, -0.45, item.position.z]} rotation={[-Math.PI / 2, 0, 0]}>
-        <circleGeometry args={[0.4, 16]} />
-        <meshBasicMaterial color={color} transparent opacity={0.25} />
+      {/* Ground beacon with spinning ring */}
+      <mesh ref={groundRingRef} position={[item.position.x, -0.44, item.position.z]} rotation={[-Math.PI / 2, 0, 0]}>
+        <ringGeometry args={[0.28, 0.45, 20]} />
+        <meshBasicMaterial color={color} transparent opacity={0.22} side={THREE.DoubleSide} depthWrite={false} />
+      </mesh>
+      {/* Inner ground fill */}
+      <mesh position={[item.position.x, -0.445, item.position.z]} rotation={[-Math.PI / 2, 0, 0]}>
+        <circleGeometry args={[0.28, 16]} />
+        <meshBasicMaterial color={color} transparent opacity={0.12} depthWrite={false} />
       </mesh>
 
       {/* Vertical light beam for rare+ items */}
-      {(item.rarity === 'rare' || item.rarity === 'epic' || item.rarity === 'legendary') && (
-        <mesh position={[item.position.x, 1.5, item.position.z]}>
-          <cylinderGeometry args={[0.05, 0.05, 3, 6]} />
-          <meshBasicMaterial color={color} transparent opacity={0.15} side={THREE.DoubleSide} />
+      {isRare && (
+        <mesh ref={beamRef} position={[item.position.x, 1.2, item.position.z]}>
+          <cylinderGeometry args={[0.04, 0.04, 2.4, 6]} />
+          <meshBasicMaterial color={color} transparent opacity={0.13} side={THREE.DoubleSide} depthWrite={false} />
         </mesh>
       )}
 
-      {/* Aura ring for epic/legendary */}
-      {(item.rarity === 'epic' || item.rarity === 'legendary') && (
-        <mesh ref={auraRef} position={[item.position.x, item.position.y + 0.5, item.position.z]}>
-          <sphereGeometry args={[0.6, 12, 12]} />
-          <meshBasicMaterial color={color} transparent opacity={0.08} side={THREE.BackSide} />
+      {/* Aura sphere for epic/legendary */}
+      {isEpicPlus && (
+        <mesh ref={auraRef} position={[item.position.x, item.position.y + 0.4, item.position.z]}>
+          <sphereGeometry args={[isLegendary ? 0.75 : 0.6, 14, 14]} />
+          <meshBasicMaterial color={color} transparent opacity={0.09} side={THREE.BackSide} depthWrite={false} />
+        </mesh>
+      )}
+
+      {/* Orbit ring for legendary only */}
+      {isLegendary && (
+        <mesh ref={orbitRingRef} position={[item.position.x, item.position.y + 0.5, item.position.z]}>
+          <torusGeometry args={[0.55, 0.03, 8, 32]} />
+          <meshBasicMaterial color={color} transparent opacity={0.2} depthWrite={false} />
         </mesh>
       )}
 
       {/* Item glow light */}
       <pointLight
-        position={[item.position.x, item.position.y + 0.8, item.position.z]}
+        position={[item.position.x, item.position.y + 0.7, item.position.z]}
         color={color}
         intensity={lightIntensity}
-        distance={item.rarity === 'legendary' ? 5 : 3}
+        distance={isLegendary ? 6 : isEpicPlus ? 4.5 : 3}
+        decay={2}
       />
     </group>
   );

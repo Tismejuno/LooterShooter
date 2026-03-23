@@ -8,6 +8,7 @@ import Dungeon from "./Dungeon";
 import Enemy from "./Enemy";
 import Loot from "./Loot";
 import Projectile from "./Projectile";
+import VFXSystem from "./VFXSystem";
 import { useEnemies } from "../../lib/stores/useEnemies";
 import { useLoot } from "../../lib/stores/useLoot";
 import { usePlayer } from "../../lib/stores/usePlayer";
@@ -150,18 +151,21 @@ export default function GameScene() {
         <Projectile key={projectile.id} projectile={projectile} />
       ))}
 
+      {/* VFX: hit sparks, death explosions, ability rings, level-up spirals */}
+      <VFXSystem />
+
       {/* === POST-PROCESSING (bloom + vignette) === */}
       <EffectComposer>
         {/* Bloom: makes emissive glows, lava, crystals, torches beautiful */}
         <Bloom
-          luminanceThreshold={0.35}
-          luminanceSmoothing={0.6}
-          intensity={1.4}
+          luminanceThreshold={0.28}
+          luminanceSmoothing={0.7}
+          intensity={1.6}
           blendFunction={BlendFunction.ADD}
           mipmapBlur
         />
         {/* Vignette: darkens the edges for cinematic atmosphere */}
-        <Vignette eskil={false} offset={0.35} darkness={0.6} blendFunction={BlendFunction.NORMAL} />
+        <Vignette eskil={false} offset={0.3} darkness={0.65} blendFunction={BlendFunction.NORMAL} />
       </EffectComposer>
     </>
   );
