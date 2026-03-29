@@ -129,6 +129,9 @@ export default function GameScene() {
       {/* Sky hemisphere for outdoor biomes */}
       <hemisphereLight args={["#6699cc", "#334422", 0.25]} />
 
+      {/* Atmospheric depth fog — adds distance haze without jarring cutoffs */}
+      <fog attach="fog" args={["#1a0d20", 30, 120]} />
+
       {/* === GAME OBJECTS === */}
       <Dungeon />
       <Player />
@@ -151,21 +154,21 @@ export default function GameScene() {
         <Projectile key={projectile.id} projectile={projectile} />
       ))}
 
-      {/* VFX: hit sparks, death explosions, ability rings, level-up spirals */}
+      {/* VFX: hit sparks, death explosions, ability rings, level-up spirals, loot pickups */}
       <VFXSystem />
 
       {/* === POST-PROCESSING (bloom + vignette) === */}
       <EffectComposer>
-        {/* Bloom: makes emissive glows, lava, crystals, torches beautiful */}
+        {/* Bloom: makes emissive glows, loot beams, weapon trails pop */}
         <Bloom
-          luminanceThreshold={0.28}
-          luminanceSmoothing={0.7}
-          intensity={1.6}
+          luminanceThreshold={0.22}
+          luminanceSmoothing={0.75}
+          intensity={2.0}
           blendFunction={BlendFunction.ADD}
           mipmapBlur
         />
-        {/* Vignette: darkens the edges for cinematic atmosphere */}
-        <Vignette eskil={false} offset={0.3} darkness={0.65} blendFunction={BlendFunction.NORMAL} />
+        {/* Vignette: darkens edges for cinematic atmosphere */}
+        <Vignette eskil={false} offset={0.3} darkness={0.7} blendFunction={BlendFunction.NORMAL} />
       </EffectComposer>
     </>
   );

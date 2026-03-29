@@ -65,6 +65,14 @@ export default function Player() {
   const isMouseDown = useRef(false);
   const lastAutoFireTime = useRef(0);
 
+  // Hit-shake state
+  const hitShakeTimeRef = useRef(-999);
+  const hitShakeOffset = useRef(new THREE.Vector3());
+
+  // Footstep timing
+  const lastFootstepTimeRef = useRef(-999);
+  const footstepInterval = 0.38; // seconds between dust puffs
+
   // Health & level tracking for visual effects
   const prevHealthRef = useRef(100);
   const hitFlashTimeRef = useRef(-999);
@@ -177,12 +185,34 @@ export default function Player() {
     if (keys.ability2) { castAbility(2, aimDirObj); lastAbilityFlashRef.current = t; addEffect({ type: "ability", position, color: "#aa44ff" }); }
     if (keys.ability3) { castAbility(3, aimDirObj); lastAbilityFlashRef.current = t; addEffect({ type: "ability", position, color: "#ff4444" }); }
 
-    // ── Update group position ─────────────────────────────────────────────────
-    groupRef.current.position.set(position.x, position.y, position.z);
+    // ── Hit-shake: briefly jitter group position on damage ───────────────────
+    const shakeAge = t - hitShakeTimeRef.current;
+    if (shakeAge < 0.25) {
+      const shakeDecay = 1 - shakeAge / 0.25;
+      hitShakeOffset.current.set(
+        (Math.random() - 0.5) * 0.12 * shakeDecay,
+        0,
+        (Math.random() - 0.5) * 0.12 * shakeDecay
+      );
+    } else {
+      hitShakeOffset.current.set(0, 0, 0);
+    }
+    groupRef.current.position.set(
+      position.x + hitShakeOffset.current.x,
+      position.y + hitShakeOffset.current.y,
+      position.z + hitShakeOffset.current.z
+    );
 
-    // ── Detect damage taken → player hit flash ────────────────────────────────
+    // ── Footstep dust puffs while moving ─────────────────────────────────────
+    if (moving && t - lastFootstepTimeRef.current > footstepInterval) {
+      lastFootstepTimeRef.current = t;
+      addEffect({ type: "footstep", position: { x: position.x, y: position.y, z: position.z }, color: "#a08070" });
+    }
+
+    // ── Detect damage taken → player hit flash + shake ───────────────────────
     if (health < prevHealthRef.current) {
       hitFlashTimeRef.current = t;
+      hitShakeTimeRef.current = t;
     }
     prevHealthRef.current = health;
 
@@ -272,6 +302,7 @@ export default function Player() {
       const abilityAge = t - lastAbilityFlashRef.current;
       const hitFlashActive = hitAge < 0.4;
       const abilityFlashActive = abilityAge < 0.5;
+      const lowHealth = health < 30;
 
       let auraOpacity = 0.07 + Math.sin(t * 3.5) * 0.04;
       let auraScale = 1 + Math.sin(t * 2.5) * 0.12;
@@ -290,6 +321,12 @@ export default function Player() {
         (auraRef.current.material as THREE.MeshBasicMaterial).color.set("#44aaff");
         auraOpacity = Math.max(auraOpacity, flashT * 0.2);
         auraScale = 1 + flashT * 0.18;
+      } else if (lowHealth) {
+        // Danger: pulse red at low health
+        const dangerPulse = 0.5 + Math.sin(t * 8) * 0.5;
+        (auraRef.current.material as THREE.MeshBasicMaterial).color.set("#ff1100");
+        auraOpacity = 0.08 + dangerPulse * 0.18;
+        auraScale = 1 + dangerPulse * 0.2;
       } else {
         (auraRef.current.material as THREE.MeshBasicMaterial).color.set(armorColor);
       }
@@ -328,6 +365,12 @@ export default function Player() {
     // ── Collision: loot ───────────────────────────────────────────────────────
     items.forEach(item => {
       if (checkCollision(position, item.position, 1)) {
+        // Sparkle pickup VFX color-matched to rarity
+        const pickupColors: Record<string, string> = {
+          common: '#c0c0c0', uncommon: '#1eff00', rare: '#0070dd',
+          epic: '#a335ee', legendary: '#ff8000'
+        };
+        addEffect({ type: "loot", position: item.position, color: pickupColors[item.rarity] ?? '#ffffff' });
         collectItem(item);
         removeItem(item.id);
       }

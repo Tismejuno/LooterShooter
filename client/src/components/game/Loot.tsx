@@ -1,5 +1,6 @@
 import { useFrame } from "@react-three/fiber";
-import { useRef } from "react";
+import { useRef, useMemo } from "react";
+import { Html } from "@react-three/drei";
 import * as THREE from "three";
 import { LootItem } from "../../lib/gameTypes";
 
@@ -185,6 +186,271 @@ function ConsumableModel({ color, emissiveIntensity }: { color: string; emissive
   );
 }
 
+// Gem / precious stone model
+function GemModel({ color, emissiveIntensity }: { color: string; emissiveIntensity: number }) {
+  return (
+    <group>
+      {/* Main gem body – faceted diamond shape */}
+      <mesh castShadow position={[0, 0.05, 0]}>
+        <octahedronGeometry args={[0.23, 1]} />
+        <meshStandardMaterial color={color} roughness={0.0} metalness={0.05} transparent opacity={0.88} emissive={color} emissiveIntensity={emissiveIntensity + 0.5} />
+      </mesh>
+      {/* Upper pavilion highlight */}
+      <mesh position={[0, 0.18, 0]}>
+        <coneGeometry args={[0.12, 0.18, 6]} />
+        <meshStandardMaterial color="#ffffff" transparent opacity={0.25} roughness={0.0} />
+      </mesh>
+      {/* Inner core glow */}
+      <mesh>
+        <octahedronGeometry args={[0.1, 0]} />
+        <meshBasicMaterial color={color} transparent opacity={0.6} />
+      </mesh>
+      {/* Sparkle highlight */}
+      <mesh position={[0.06, 0.12, 0.1]}>
+        <sphereGeometry args={[0.025, 4, 4]} />
+        <meshBasicMaterial color="#ffffff" transparent opacity={0.9} />
+      </mesh>
+    </group>
+  );
+}
+
+// Rune / inscribed tablet model
+function RuneModel({ color, emissiveIntensity }: { color: string; emissiveIntensity: number }) {
+  return (
+    <group>
+      {/* Stone tablet body */}
+      <mesh castShadow>
+        <boxGeometry args={[0.32, 0.46, 0.08]} />
+        <meshStandardMaterial color="#3a3040" roughness={0.8} metalness={0.1} />
+      </mesh>
+      {/* Carved border */}
+      <mesh castShadow position={[0, 0, 0.042]}>
+        <boxGeometry args={[0.26, 0.38, 0.02]} />
+        <meshStandardMaterial color="#2a2030" roughness={0.9} metalness={0.0} />
+      </mesh>
+      {/* Central rune glyph – glowing cross */}
+      <mesh position={[0, 0, 0.055]}>
+        <boxGeometry args={[0.06, 0.28, 0.01]} />
+        <meshBasicMaterial color={color} transparent opacity={emissiveIntensity * 0.8 + 0.4} />
+      </mesh>
+      <mesh position={[0, 0, 0.055]}>
+        <boxGeometry args={[0.28, 0.06, 0.01]} />
+        <meshBasicMaterial color={color} transparent opacity={emissiveIntensity * 0.8 + 0.4} />
+      </mesh>
+      {/* Corner rune dots */}
+      {[[-0.09, 0.16], [0.09, 0.16], [-0.09, -0.16], [0.09, -0.16]].map(([x, y], i) => (
+        <mesh key={i} position={[x, y, 0.055]}>
+          <circleGeometry args={[0.025, 6]} />
+          <meshBasicMaterial color={color} transparent opacity={emissiveIntensity * 0.7 + 0.3} />
+        </mesh>
+      ))}
+      {/* Glow aura on rune face */}
+      <mesh position={[0, 0, 0.06]}>
+        <planeGeometry args={[0.28, 0.4]} />
+        <meshBasicMaterial color={color} transparent opacity={emissiveIntensity * 0.12 + 0.05} side={THREE.DoubleSide} depthWrite={false} />
+      </mesh>
+    </group>
+  );
+}
+
+// Accessory / ring model
+function AccessoryModel({ color, emissiveIntensity }: { color: string; emissiveIntensity: number }) {
+  return (
+    <group>
+      {/* Ring band */}
+      <mesh castShadow>
+        <torusGeometry args={[0.2, 0.045, 12, 32]} />
+        <meshStandardMaterial color="#c8a820" roughness={0.2} metalness={0.92} emissive="#806010" emissiveIntensity={0.15} />
+      </mesh>
+      {/* Gem setting (raised prong) */}
+      <mesh castShadow position={[0, 0.21, 0]}>
+        <cylinderGeometry args={[0.055, 0.065, 0.06, 8]} />
+        <meshStandardMaterial color="#c8a820" roughness={0.25} metalness={0.9} />
+      </mesh>
+      {/* Gem stone */}
+      <mesh castShadow position={[0, 0.255, 0]}>
+        <octahedronGeometry args={[0.065, 1]} />
+        <meshStandardMaterial color={color} roughness={0.0} metalness={0.0} transparent opacity={0.9} emissive={color} emissiveIntensity={emissiveIntensity + 0.4} />
+      </mesh>
+      {/* Setting prongs */}
+      {[0, Math.PI / 2, Math.PI, (3 * Math.PI) / 2].map((angle, i) => (
+        <mesh key={i} castShadow
+          position={[Math.cos(angle) * 0.052, 0.26, Math.sin(angle) * 0.052]}
+          rotation={[0, 0, angle]}>
+          <coneGeometry args={[0.012, 0.05, 4]} />
+          <meshStandardMaterial color="#c8a820" roughness={0.2} metalness={0.9} />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
+// Relic / ancient artifact model
+function RelicModel({ color, emissiveIntensity }: { color: string; emissiveIntensity: number }) {
+  return (
+    <group>
+      {/* Main orb */}
+      <mesh castShadow>
+        <sphereGeometry args={[0.19, 14, 14]} />
+        <meshStandardMaterial color="#1a0a20" roughness={0.15} metalness={0.3} emissive={color} emissiveIntensity={emissiveIntensity * 0.4} />
+      </mesh>
+      {/* Outer shell bands (2 rings) */}
+      <mesh castShadow>
+        <torusGeometry args={[0.19, 0.028, 8, 28]} />
+        <meshStandardMaterial color="#8a6030" roughness={0.3} metalness={0.85} />
+      </mesh>
+      <mesh castShadow rotation={[Math.PI / 2, 0, 0]}>
+        <torusGeometry args={[0.19, 0.028, 8, 28]} />
+        <meshStandardMaterial color="#8a6030" roughness={0.3} metalness={0.85} />
+      </mesh>
+      {/* Inner pulsing core */}
+      <mesh>
+        <sphereGeometry args={[0.1, 10, 10]} />
+        <meshBasicMaterial color={color} transparent opacity={emissiveIntensity * 0.6 + 0.3} />
+      </mesh>
+      {/* Connecting gem nodes */}
+      {[
+        [0, 0.2, 0], [0, -0.2, 0], [0.2, 0, 0], [-0.2, 0, 0]
+      ].map(([x, y, z], i) => (
+        <mesh key={i} castShadow position={[x, y, z]}>
+          <octahedronGeometry args={[0.038]} />
+          <meshStandardMaterial color={color} roughness={0.05} metalness={0.1} emissive={color} emissiveIntensity={emissiveIntensity + 0.5} />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
+// Material / crafting resource model (raw crystal cluster)
+function MaterialModel({ color, emissiveIntensity }: { color: string; emissiveIntensity: number }) {
+  return (
+    <group>
+      {/* Central spike */}
+      <mesh castShadow position={[0, 0.1, 0]}>
+        <coneGeometry args={[0.09, 0.38, 5]} />
+        <meshStandardMaterial color={color} roughness={0.2} metalness={0.5} emissive={color} emissiveIntensity={emissiveIntensity * 0.8} />
+      </mesh>
+      {/* Side spikes */}
+      <mesh castShadow position={[0.1, 0, 0.05]} rotation={[0, 0, -0.5]}>
+        <coneGeometry args={[0.06, 0.28, 5]} />
+        <meshStandardMaterial color={color} roughness={0.2} metalness={0.5} emissive={color} emissiveIntensity={emissiveIntensity * 0.6} />
+      </mesh>
+      <mesh castShadow position={[-0.1, -0.02, 0.05]} rotation={[0, 0, 0.5]}>
+        <coneGeometry args={[0.055, 0.25, 5]} />
+        <meshStandardMaterial color={color} roughness={0.2} metalness={0.5} emissive={color} emissiveIntensity={emissiveIntensity * 0.6} />
+      </mesh>
+      <mesh castShadow position={[0.02, 0.02, -0.1]} rotation={[0.4, 0, 0.2]}>
+        <coneGeometry args={[0.05, 0.22, 5]} />
+        <meshStandardMaterial color={color} roughness={0.2} metalness={0.5} emissive={color} emissiveIntensity={emissiveIntensity * 0.5} />
+      </mesh>
+      {/* Rock base */}
+      <mesh castShadow position={[0, -0.1, 0]}>
+        <dodecahedronGeometry args={[0.13]} />
+        <meshStandardMaterial color="#4a4040" roughness={0.95} metalness={0.05} />
+      </mesh>
+    </group>
+  );
+}
+
+// Artifact / legendary ancient relic model
+function ArtifactModel({ color, emissiveIntensity }: { color: string; emissiveIntensity: number }) {
+  return (
+    <group>
+      {/* Base disc plinth */}
+      <mesh castShadow position={[0, -0.12, 0]}>
+        <cylinderGeometry args={[0.22, 0.18, 0.08, 8]} />
+        <meshStandardMaterial color="#302030" roughness={0.3} metalness={0.7} />
+      </mesh>
+      {/* Pyramid-like body */}
+      <mesh castShadow position={[0, 0.04, 0]}>
+        <octahedronGeometry args={[0.22, 0]} />
+        <meshStandardMaterial color="#201020" roughness={0.2} metalness={0.6} emissive={color} emissiveIntensity={emissiveIntensity * 0.25} />
+      </mesh>
+      {/* Gold trim rings */}
+      {[-0.05, 0.04, 0.13].map((y, i) => (
+        <mesh key={i} castShadow position={[0, y, 0]}>
+          <torusGeometry args={[0.22 - i * 0.03, 0.02, 6, 24]} />
+          <meshStandardMaterial color="#c8a020" roughness={0.2} metalness={0.95} />
+        </mesh>
+      ))}
+      {/* Central power gem */}
+      <mesh castShadow position={[0, 0.12, 0]}>
+        <octahedronGeometry args={[0.085, 1]} />
+        <meshStandardMaterial color={color} roughness={0.0} metalness={0.0} transparent opacity={0.92} emissive={color} emissiveIntensity={emissiveIntensity + 0.6} />
+      </mesh>
+      {/* Energy beams from equatorial points */}
+      {[0, Math.PI / 2, Math.PI, (3 * Math.PI) / 2].map((angle, i) => (
+        <mesh key={i} position={[Math.cos(angle) * 0.18, 0.04, Math.sin(angle) * 0.18]}>
+          <octahedronGeometry args={[0.035]} />
+          <meshBasicMaterial color={color} transparent opacity={emissiveIntensity * 0.8 + 0.4} />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
+// Helper: compute particle orbit angle at time t
+function particleAngle(i: number, t: number, phases: Float32Array, speeds: Float32Array) {
+  return phases[i] + t * speeds[i];
+}
+
+// ── Floating ambient particles for epic / legendary items ─────────────────────
+function LootParticles({ color, isLegendary }: { color: string; isLegendary: boolean }) {
+  const COUNT = isLegendary ? 24 : 14;
+  const posAttr = useRef<THREE.BufferAttribute>(null);
+  const pointsRef = useRef<THREE.Points>(null);
+
+  const { positions, phases, radii, speeds } = useMemo(() => {
+    const pos = new Float32Array(COUNT * 3);
+    const ph = new Float32Array(COUNT);
+    const r = new Float32Array(COUNT);
+    const sp = new Float32Array(COUNT);
+    for (let i = 0; i < COUNT; i++) {
+      ph[i] = (i / COUNT) * Math.PI * 2 + Math.random() * 0.5;
+      r[i] = 0.3 + Math.random() * (isLegendary ? 0.65 : 0.45);
+      sp[i] = 0.8 + Math.random() * 1.2;
+      pos[i * 3] = Math.cos(ph[i]) * r[i];
+      pos[i * 3 + 1] = Math.random() * 0.8;
+      pos[i * 3 + 2] = Math.sin(ph[i]) * r[i];
+    }
+    return { positions: pos, phases: ph, radii: r, speeds: sp };
+  }, [COUNT, isLegendary]);
+
+  useFrame((state) => {
+    if (!posAttr.current || !pointsRef.current) return;
+    const t = state.clock.elapsedTime;
+    const arr = posAttr.current.array as Float32Array;
+    for (let i = 0; i < COUNT; i++) {
+      const angle = particleAngle(i, t, phases, speeds);
+      arr[i * 3] = Math.cos(angle) * radii[i];
+      arr[i * 3 + 1] = 0.15 + ((i / COUNT + t * speeds[i] * 0.25) % 1) * (isLegendary ? 1.0 : 0.7);
+      arr[i * 3 + 2] = Math.sin(angle) * radii[i];
+    }
+    posAttr.current.needsUpdate = true;
+
+    const mat = pointsRef.current.material as THREE.PointsMaterial;
+    mat.size = 0.07 + Math.sin(t * 3) * 0.02;
+  });
+
+  return (
+    <points ref={pointsRef}>
+      <bufferGeometry>
+        <bufferAttribute ref={posAttr} attach="attributes-position" args={[positions, 3]} />
+      </bufferGeometry>
+      <pointsMaterial color={color} size={0.08} transparent opacity={isLegendary ? 0.75 : 0.55} sizeAttenuation depthWrite={false} />
+    </points>
+  );
+}
+
+// Rarity label colors for the HTML overlay
+const rarityLabelColor: Record<string, string> = {
+  common: '#c0c0c0',
+  uncommon: '#1eff00',
+  rare: '#0070dd',
+  epic: '#a335ee',
+  legendary: '#ff8000',
+};
+
 export default function Loot({ item }: LootProps) {
   const groupRef = useRef<THREE.Group>(null);
   const auraRef = useRef<THREE.Mesh>(null);
@@ -254,6 +520,20 @@ export default function Loot({ item }: LootProps) {
         return <PotionModel color={color} emissiveIntensity={emissiveIntensity} />;
       case 'scroll':
         return <ScrollModel color={color} emissiveIntensity={emissiveIntensity} />;
+      case 'rune':
+        return <RuneModel color={color} emissiveIntensity={emissiveIntensity} />;
+      case 'gem':
+        return <GemModel color={color} emissiveIntensity={emissiveIntensity} />;
+      case 'accessory':
+      case 'offhand':
+        return <AccessoryModel color={color} emissiveIntensity={emissiveIntensity} />;
+      case 'relic':
+        return <RelicModel color={color} emissiveIntensity={emissiveIntensity} />;
+      case 'artifact':
+        return <ArtifactModel color={color} emissiveIntensity={emissiveIntensity} />;
+      case 'material':
+      case 'blueprint':
+        return <MaterialModel color={color} emissiveIntensity={emissiveIntensity} />;
       default:
         return <ConsumableModel color={color} emissiveIntensity={emissiveIntensity} />;
     }
@@ -264,6 +544,48 @@ export default function Loot({ item }: LootProps) {
       {/* Item model group (floats and rotates) */}
       <group ref={groupRef} position={[item.position.x, item.position.y, item.position.z]}>
         {renderModel()}
+      </group>
+
+      {/* Ambient floating particles for epic / legendary */}
+      {isEpicPlus && (
+        <group position={[item.position.x, item.position.y, item.position.z]}>
+          <LootParticles color={color} isLegendary={isLegendary} />
+        </group>
+      )}
+
+      {/* Item name + rarity label — always visible to help navigation */}
+      <group position={[item.position.x, item.position.y + 1.1, item.position.z]}>
+        <Html
+          center
+          distanceFactor={8}
+          occlude={false}
+          style={{ pointerEvents: 'none', userSelect: 'none' }}
+        >
+          <div style={{
+            textAlign: 'center',
+            lineHeight: '1.2',
+            fontFamily: '"Segoe UI", sans-serif',
+            textShadow: '0 0 6px rgba(0,0,0,0.9)',
+            whiteSpace: 'nowrap',
+          }}>
+            <div style={{
+              fontSize: '10px',
+              fontWeight: 700,
+              color: rarityLabelColor[item.rarity] ?? '#ffffff',
+              letterSpacing: '0.05em',
+              textTransform: 'uppercase',
+            }}>
+              {item.rarity}
+            </div>
+            <div style={{
+              fontSize: '11px',
+              color: '#f0f0f0',
+              marginTop: '1px',
+            }}>
+              {item.name}
+            </div>
+          </div>
+        </Html>
       </group>
 
       {/* Ground beacon with spinning ring */}
