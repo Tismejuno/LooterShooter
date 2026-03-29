@@ -201,7 +201,7 @@ function CrystalSpike({
   );
 }
 
-function LavaSurface({ cx, cz, w, h }: { cx: number; cz: number; w: number; h: number }) {
+function LavaSurface({ cx, cz, w, h, lavaTexture }: { cx: number; cz: number; w: number; h: number; lavaTexture: THREE.Texture }) {
   const meshRef = useRef<THREE.Mesh>(null);
   useFrame((state) => {
     if (!meshRef.current) return;
@@ -215,12 +215,12 @@ function LavaSurface({ cx, cz, w, h }: { cx: number; cz: number; w: number; h: n
   return (
     <mesh ref={meshRef} receiveShadow position={[cx, -0.44, cz]} rotation={[-Math.PI / 2, 0, 0]}>
       <planeGeometry args={[w, h, 12, 12]} />
-      <meshStandardMaterial color="#cc2200" emissive="#ff4400" emissiveIntensity={0.7} roughness={0.4} metalness={0.1} />
+      <meshStandardMaterial map={lavaTexture} color="#cc2200" emissive="#ff4400" emissiveIntensity={0.7} roughness={0.4} metalness={0.1} />
     </mesh>
   );
 }
 
-function SkyGround({ cx, cz, w, h }: { cx: number; cz: number; w: number; h: number }) {
+function SkyGround({ cx, cz, w, h, skyTexture }: { cx: number; cz: number; w: number; h: number; skyTexture: THREE.Texture }) {
   const meshRef = useRef<THREE.Mesh>(null);
   useFrame((state) => {
     if (!meshRef.current) return;
@@ -231,7 +231,7 @@ function SkyGround({ cx, cz, w, h }: { cx: number; cz: number; w: number; h: num
   return (
     <mesh ref={meshRef} receiveShadow position={[cx, -0.46, cz]} rotation={[-Math.PI / 2, 0, 0]}>
       <planeGeometry args={[w, h]} />
-      <meshBasicMaterial color="#a0c8ff" transparent opacity={0.6} />
+      <meshBasicMaterial map={skyTexture} color="#a0c8ff" transparent opacity={0.6} />
     </mesh>
   );
 }
@@ -272,9 +272,10 @@ function IceStalactite({ position, h }: { position: [number, number, number]; h:
 }
 
 function DungeonRoom({
-  room, asphaltTexture, woodTexture,
+  room, asphaltTexture, woodTexture, woodPlankTexture, sandTexture,
 }: {
   room: Room; asphaltTexture: THREE.Texture; woodTexture: THREE.Texture;
+  woodPlankTexture: THREE.Texture; sandTexture: THREE.Texture;
 }) {
   return (
     <group>
@@ -285,6 +286,11 @@ function DungeonRoom({
       <mesh receiveShadow position={[room.x, -0.44, room.z]} rotation={[-Math.PI / 2, 0, 0]}>
         <planeGeometry args={[room.width + 0.4, room.height + 0.4]} />
         <meshStandardMaterial color="#141414" roughness={0.9} />
+      </mesh>
+      {/* Sandy centre patch – worn floor revealing the earthen substrate */}
+      <mesh receiveShadow position={[room.x, -0.435, room.z]} rotation={[-Math.PI / 2, 0, 0]}>
+        <circleGeometry args={[room.width * 0.18, 16]} />
+        <meshStandardMaterial map={sandTexture} roughness={0.95} color="#6a5030" transparent opacity={0.55} />
       </mesh>
       <mesh position={[room.x, -0.43, room.z]} rotation={[-Math.PI / 2, 0, 0]}>
         <ringGeometry args={[0.8, 1.0, 12]} />
@@ -298,7 +304,7 @@ function DungeonRoom({
             <group key={`${xSign}-${zSign}`}>
               <mesh castShadow position={[px, 1.2, pz]}>
                 <cylinderGeometry args={[0.28, 0.34, 2.4, 8]} />
-                <meshStandardMaterial color="#3a3020" roughness={0.85} metalness={0.05} />
+                <meshStandardMaterial map={woodPlankTexture} color="#3a3020" roughness={0.85} metalness={0.05} />
               </mesh>
               <mesh castShadow position={[px, 0.06, pz]}>
                 <cylinderGeometry args={[0.42, 0.42, 0.12, 8]} />
@@ -355,7 +361,7 @@ function GrasslandRoom({ room, grassTexture }: { room: Room; grassTexture: THREE
   );
 }
 
-function SnowRoom({ room }: { room: Room }) {
+function SnowRoom({ room, snowTexture }: { room: Room; snowTexture: THREE.Texture }) {
   const stalactites = useMemo(() =>
     Array.from({ length: 10 }, (_, i) => {
       const angle = (i / 10) * Math.PI * 2;
@@ -369,7 +375,7 @@ function SnowRoom({ room }: { room: Room }) {
     <group>
       <mesh receiveShadow position={[room.x, -0.45, room.z]} rotation={[-Math.PI / 2, 0, 0]}>
         <planeGeometry args={[room.width, room.height]} />
-        <meshStandardMaterial color="#ddeeff" roughness={0.95} metalness={0.02} />
+        <meshStandardMaterial map={snowTexture} color="#ddeeff" roughness={0.95} metalness={0.02} />
       </mesh>
       <mesh receiveShadow position={[room.x, -0.44, room.z]} rotation={[-Math.PI / 2, 0, 0]}>
         <circleGeometry args={[room.width * 0.3, 20]} />
@@ -382,7 +388,7 @@ function SnowRoom({ room }: { room: Room }) {
   );
 }
 
-function CloudRoom({ room }: { room: Room }) {
+function CloudRoom({ room, skyTexture }: { room: Room; skyTexture: THREE.Texture }) {
   const clouds = useMemo<Array<[number, number, number]>>(() =>
     Array.from({ length: 6 }, (_, i) => {
       const angle = (i / 6) * Math.PI * 2;
@@ -391,7 +397,7 @@ function CloudRoom({ room }: { room: Room }) {
     }), [room]);
   return (
     <group>
-      <SkyGround cx={room.x} cz={room.z} w={room.width} h={room.height} />
+      <SkyGround cx={room.x} cz={room.z} w={room.width} h={room.height} skyTexture={skyTexture} />
       <mesh receiveShadow position={[room.x, -0.44, room.z]} rotation={[-Math.PI / 2, 0, 0]}>
         <circleGeometry args={[room.width * 0.32, 16]} />
         <meshStandardMaterial color="#e8f4ff" roughness={0.9} />
@@ -403,7 +409,7 @@ function CloudRoom({ room }: { room: Room }) {
   );
 }
 
-function LavaRoom({ room }: { room: Room }) {
+function LavaRoom({ room, lavaTexture }: { room: Room; lavaTexture: THREE.Texture }) {
   const lavaPools = useMemo(() =>
     Array.from({ length: 4 }, (_, i) => {
       const angle = (i / 4) * Math.PI * 2;
@@ -420,7 +426,7 @@ function LavaRoom({ room }: { room: Room }) {
         <planeGeometry args={[room.width, room.height]} />
         <meshStandardMaterial color="#1a0808" roughness={0.92} />
       </mesh>
-      <LavaSurface cx={room.x} cz={room.z} w={room.width * 0.7} h={room.height * 0.7} />
+      <LavaSurface cx={room.x} cz={room.z} w={room.width * 0.7} h={room.height * 0.7} lavaTexture={lavaTexture} />
       {lavaPools.map((p, i) => (
         <mesh key={i} receiveShadow position={[p.cx, -0.43, p.cz]} rotation={[-Math.PI / 2, 0, 0]}>
           <circleGeometry args={[p.r, 14]} />
@@ -471,6 +477,11 @@ export default function Dungeon() {
   const grassTexture = useTexture("/textures/grass.png");
   const asphaltTexture = useTexture("/textures/asphalt.png");
   const woodTexture = useTexture("/textures/wood.jpg");
+  const lavaTexture = useTexture("/textures/lava.png");
+  const snowTexture = useTexture("/textures/snow_ice.png");
+  const skyTexture = useTexture("/textures/sky.png");
+  const woodPlankTexture = useTexture("/textures/wood_plank.png");
+  const sandTexture = useTexture("/textures/sand.png");
   const { rooms, walls } = useDungeon();
 
   useMemo(() => {
@@ -480,7 +491,17 @@ export default function Dungeon() {
     asphaltTexture.repeat.set(6, 6);
     woodTexture.wrapS = woodTexture.wrapT = THREE.RepeatWrapping;
     woodTexture.repeat.set(2, 2);
-  }, [grassTexture, asphaltTexture, woodTexture]);
+    lavaTexture.wrapS = lavaTexture.wrapT = THREE.RepeatWrapping;
+    lavaTexture.repeat.set(3, 3);
+    snowTexture.wrapS = snowTexture.wrapT = THREE.RepeatWrapping;
+    snowTexture.repeat.set(4, 4);
+    skyTexture.wrapS = skyTexture.wrapT = THREE.RepeatWrapping;
+    skyTexture.repeat.set(1, 1);
+    woodPlankTexture.wrapS = woodPlankTexture.wrapT = THREE.RepeatWrapping;
+    woodPlankTexture.repeat.set(2, 2);
+    sandTexture.wrapS = sandTexture.wrapT = THREE.RepeatWrapping;
+    sandTexture.repeat.set(3, 3);
+  }, [grassTexture, asphaltTexture, woodTexture, lavaTexture, snowTexture, skyTexture, woodPlankTexture, sandTexture]);
 
   return (
     <group>
@@ -494,15 +515,15 @@ export default function Dungeon() {
           case "grassland":
             return <GrasslandRoom key={index} room={room} grassTexture={grassTexture} />;
           case "snow":
-            return <SnowRoom key={index} room={room} />;
+            return <SnowRoom key={index} room={room} snowTexture={snowTexture} />;
           case "clouds":
-            return <CloudRoom key={index} room={room} />;
+            return <CloudRoom key={index} room={room} skyTexture={skyTexture} />;
           case "lava":
-            return <LavaRoom key={index} room={room} />;
+            return <LavaRoom key={index} room={room} lavaTexture={lavaTexture} />;
           case "crystal":
             return <CrystalRoom key={index} room={room} />;
           default:
-            return <DungeonRoom key={index} room={room} asphaltTexture={asphaltTexture} woodTexture={woodTexture} />;
+            return <DungeonRoom key={index} room={room} asphaltTexture={asphaltTexture} woodTexture={woodTexture} woodPlankTexture={woodPlankTexture} sandTexture={sandTexture} />;
         }
       })}
 
