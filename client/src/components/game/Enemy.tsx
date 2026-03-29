@@ -5,6 +5,7 @@ import { Enemy as EnemyType } from "../../lib/gameTypes";
 import { usePlayer } from "../../lib/stores/usePlayer";
 import { useEnemies } from "../../lib/stores/useEnemies";
 import { useVFX } from "../../lib/stores/useVFX";
+import { zombieSkinTex, leatherTex } from "../../lib/textures";
 
 interface EnemyProps {
   enemy: EnemyType;
@@ -55,62 +56,62 @@ function ZombieModel({ isAttacking }: { isAttacking: boolean }) {
       <group ref={leftLegRef} position={[-0.17, 0.5, 0]}>
         <mesh castShadow position={[0, -0.2, 0]}>
           <cylinderGeometry args={[0.11, 0.1, 0.48, 8]} />
-          <meshStandardMaterial color="#3a3010" roughness={0.95} />
+          <meshStandardMaterial map={leatherTex(1)} color="#3a3010" roughness={0.93} />
         </mesh>
         <mesh castShadow position={[0, -0.48, 0]}>
           <cylinderGeometry args={[0.1, 0.09, 0.44, 8]} />
-          <meshStandardMaterial color="#3a3010" roughness={0.95} />
+          <meshStandardMaterial map={leatherTex(1)} color="#3a3010" roughness={0.93} />
         </mesh>
         {/* Foot */}
         <mesh castShadow position={[0, -0.72, 0.05]}>
           <boxGeometry args={[0.14, 0.1, 0.24]} />
-          <meshStandardMaterial color="#2a2008" roughness={0.97} />
+          <meshStandardMaterial map={leatherTex(1)} color="#2a2008" roughness={0.96} />
         </mesh>
       </group>
       <group ref={rightLegRef} position={[0.17, 0.5, 0]}>
         <mesh castShadow position={[0, -0.2, 0]}>
           <cylinderGeometry args={[0.11, 0.1, 0.48, 8]} />
-          <meshStandardMaterial color="#3a3010" roughness={0.95} />
+          <meshStandardMaterial map={leatherTex(1)} color="#3a3010" roughness={0.93} />
         </mesh>
         <mesh castShadow position={[0, -0.48, 0]}>
           <cylinderGeometry args={[0.1, 0.09, 0.44, 8]} />
-          <meshStandardMaterial color="#3a3010" roughness={0.95} />
+          <meshStandardMaterial map={leatherTex(1)} color="#3a3010" roughness={0.93} />
         </mesh>
         <mesh castShadow position={[0, -0.72, 0.05]}>
           <boxGeometry args={[0.14, 0.1, 0.24]} />
-          <meshStandardMaterial color="#2a2008" roughness={0.97} />
+          <meshStandardMaterial map={leatherTex(1)} color="#2a2008" roughness={0.96} />
         </mesh>
       </group>
 
-      {/* Hunched torso */}
+      {/* Hunched torso – zombie skin texture */}
       <mesh ref={torsoRef} castShadow position={[0, 0.86, 0]} rotation={[0.28, 0, 0]}>
         <boxGeometry args={[0.66, 0.67, 0.4]} />
-        <meshStandardMaterial color={bodyColor} roughness={0.92} />
+        <meshStandardMaterial map={zombieSkinTex()} color={bodyColor} roughness={0.88} />
       </mesh>
       {/* Torn shirt patches */}
       <mesh position={[0.18, 0.82, 0.21]} rotation={[0.28, 0, 0.2]}>
         <boxGeometry args={[0.22, 0.28, 0.01]} />
-        <meshStandardMaterial color={darkSkin} roughness={0.97} />
+        <meshStandardMaterial map={leatherTex(1)} color={darkSkin} roughness={0.96} />
       </mesh>
       <mesh position={[-0.15, 0.9, 0.21]} rotation={[0.28, 0, -0.15]}>
         <boxGeometry args={[0.18, 0.2, 0.01]} />
-        <meshStandardMaterial color={darkSkin} roughness={0.97} />
+        <meshStandardMaterial map={leatherTex(1)} color={darkSkin} roughness={0.96} />
       </mesh>
 
       {/* Left arm (reaching forward/dangling) */}
       <group ref={leftArmRef} position={[-0.39, 0.92, 0.1]}>
         <mesh castShadow position={[0, -0.22, 0]}>
           <cylinderGeometry args={[0.09, 0.08, 0.46, 8]} />
-          <meshStandardMaterial color={skinColor} roughness={0.92} />
+          <meshStandardMaterial map={zombieSkinTex()} color={skinColor} roughness={0.89} />
         </mesh>
         <mesh castShadow position={[0, -0.5, 0]}>
           <cylinderGeometry args={[0.08, 0.07, 0.4, 8]} />
-          <meshStandardMaterial color={skinColor} roughness={0.92} />
+          <meshStandardMaterial map={zombieSkinTex()} color={skinColor} roughness={0.89} />
         </mesh>
         {/* Clawed hand */}
         <mesh castShadow position={[0, -0.72, 0]}>
           <sphereGeometry args={[0.08, 8, 8]} />
-          <meshStandardMaterial color={darkSkin} roughness={0.9} />
+          <meshStandardMaterial map={zombieSkinTex()} color={darkSkin} roughness={0.88} />
         </mesh>
         {/* Claws */}
         {[-0.04, 0, 0.04].map((x, i) => (
@@ -124,15 +125,15 @@ function ZombieModel({ isAttacking }: { isAttacking: boolean }) {
       <group ref={rightArmRef} position={[0.39, 0.92, 0.1]}>
         <mesh castShadow position={[0, -0.22, 0]}>
           <cylinderGeometry args={[0.09, 0.08, 0.46, 8]} />
-          <meshStandardMaterial color={skinColor} roughness={0.92} />
+          <meshStandardMaterial map={zombieSkinTex()} color={skinColor} roughness={0.89} />
         </mesh>
         <mesh castShadow position={[0, -0.5, 0]}>
           <cylinderGeometry args={[0.08, 0.07, 0.4, 8]} />
-          <meshStandardMaterial color={skinColor} roughness={0.92} />
+          <meshStandardMaterial map={zombieSkinTex()} color={skinColor} roughness={0.89} />
         </mesh>
         <mesh castShadow position={[0, -0.72, 0]}>
           <sphereGeometry args={[0.08, 8, 8]} />
-          <meshStandardMaterial color={darkSkin} roughness={0.9} />
+          <meshStandardMaterial map={zombieSkinTex()} color={darkSkin} roughness={0.88} />
         </mesh>
         {[-0.04, 0, 0.04].map((x, i) => (
           <mesh key={i} castShadow position={[x, -0.82, 0.04]}>
@@ -142,10 +143,10 @@ function ZombieModel({ isAttacking }: { isAttacking: boolean }) {
         ))}
       </group>
 
-      {/* Head */}
+      {/* Head – zombie skin texture */}
       <mesh ref={headRef} castShadow position={[0, 1.37, 0.09]} rotation={[0.22, 0, 0]}>
         <boxGeometry args={[0.42, 0.42, 0.4]} />
-        <meshStandardMaterial color={skinColor} roughness={0.92} />
+        <meshStandardMaterial map={zombieSkinTex()} color={skinColor} roughness={0.89} />
       </mesh>
       {/* Zombie eyes */}
       <mesh position={[-0.1, 1.41, 0.3]}>
