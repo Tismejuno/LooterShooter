@@ -1,5 +1,5 @@
 import { useFrame, useThree } from "@react-three/fiber";
-import { useKeyboardControls } from "@react-three/drei";
+import { useKeyboardControls, Trail } from "@react-three/drei";
 import { useRef, useEffect, useMemo } from "react";
 import * as THREE from "three";
 import { usePlayer } from "../../lib/stores/usePlayer";
@@ -8,6 +8,7 @@ import { useLoot } from "../../lib/stores/useLoot";
 import { useAudio } from "../../lib/stores/useAudio";
 import { useVFX } from "../../lib/stores/useVFX";
 import { checkCollision } from "../../lib/gameUtils";
+import { metalTex, leatherTex, crystalTex, goldTex } from "../../lib/textures";
 
 // Match the attack cooldown defined in the player store so mouse-held auto-fire
 // doesn't issue more attempts than the store will actually accept.
@@ -64,6 +65,14 @@ export default function Player() {
   const attackTime = useRef(0);
   const isMouseDown = useRef(false);
   const lastAutoFireTime = useRef(0);
+
+  // Hit-shake state
+  const hitShakeTimeRef = useRef(-999);
+  const hitShakeOffset = useRef(new THREE.Vector3());
+
+  // Footstep timing
+  const lastFootstepTimeRef = useRef(-999);
+  const footstepInterval = 0.38; // seconds between dust puffs
 
   // Health & level tracking for visual effects
   const prevHealthRef = useRef(100);
@@ -177,12 +186,34 @@ export default function Player() {
     if (keys.ability2) { castAbility(2, aimDirObj); lastAbilityFlashRef.current = t; addEffect({ type: "ability", position, color: "#aa44ff" }); }
     if (keys.ability3) { castAbility(3, aimDirObj); lastAbilityFlashRef.current = t; addEffect({ type: "ability", position, color: "#ff4444" }); }
 
-    // ── Update group position ─────────────────────────────────────────────────
-    groupRef.current.position.set(position.x, position.y, position.z);
+    // ── Hit-shake: briefly jitter group position on damage ───────────────────
+    const shakeAge = t - hitShakeTimeRef.current;
+    if (shakeAge < 0.25) {
+      const shakeDecay = 1 - shakeAge / 0.25;
+      hitShakeOffset.current.set(
+        (Math.random() - 0.5) * 0.12 * shakeDecay,
+        0,
+        (Math.random() - 0.5) * 0.12 * shakeDecay
+      );
+    } else {
+      hitShakeOffset.current.set(0, 0, 0);
+    }
+    groupRef.current.position.set(
+      position.x + hitShakeOffset.current.x,
+      position.y + hitShakeOffset.current.y,
+      position.z + hitShakeOffset.current.z
+    );
 
-    // ── Detect damage taken → player hit flash ────────────────────────────────
+    // ── Footstep dust puffs while moving ─────────────────────────────────────
+    if (moving && t - lastFootstepTimeRef.current > footstepInterval) {
+      lastFootstepTimeRef.current = t;
+      addEffect({ type: "footstep", position: { x: position.x, y: position.y, z: position.z }, color: "#a08070" });
+    }
+
+    // ── Detect damage taken → player hit flash + shake ───────────────────────
     if (health < prevHealthRef.current) {
       hitFlashTimeRef.current = t;
+      hitShakeTimeRef.current = t;
     }
     prevHealthRef.current = health;
 
@@ -272,6 +303,7 @@ export default function Player() {
       const abilityAge = t - lastAbilityFlashRef.current;
       const hitFlashActive = hitAge < 0.4;
       const abilityFlashActive = abilityAge < 0.5;
+      const lowHealth = health < 30;
 
       let auraOpacity = 0.07 + Math.sin(t * 3.5) * 0.04;
       let auraScale = 1 + Math.sin(t * 2.5) * 0.12;
@@ -290,6 +322,12 @@ export default function Player() {
         (auraRef.current.material as THREE.MeshBasicMaterial).color.set("#44aaff");
         auraOpacity = Math.max(auraOpacity, flashT * 0.2);
         auraScale = 1 + flashT * 0.18;
+      } else if (lowHealth) {
+        // Danger: pulse red at low health
+        const dangerPulse = 0.5 + Math.sin(t * 8) * 0.5;
+        (auraRef.current.material as THREE.MeshBasicMaterial).color.set("#ff1100");
+        auraOpacity = 0.08 + dangerPulse * 0.18;
+        auraScale = 1 + dangerPulse * 0.2;
       } else {
         (auraRef.current.material as THREE.MeshBasicMaterial).color.set(armorColor);
       }
@@ -328,6 +366,12 @@ export default function Player() {
     // ── Collision: loot ───────────────────────────────────────────────────────
     items.forEach(item => {
       if (checkCollision(position, item.position, 1)) {
+        // Sparkle pickup VFX color-matched to rarity
+        const pickupColors: Record<string, string> = {
+          common: '#c0c0c0', uncommon: '#1eff00', rare: '#0070dd',
+          epic: '#a335ee', legendary: '#ff8000'
+        };
+        addEffect({ type: "loot", position: item.position, color: pickupColors[item.rarity] ?? '#ffffff' });
         collectItem(item);
         removeItem(item.id);
       }
@@ -353,22 +397,22 @@ export default function Player() {
         {/* Upper leg */}
         <mesh castShadow position={[0, 0.3, 0]}>
           <cylinderGeometry args={[0.145, 0.12, 0.62, 10]} />
-          <meshStandardMaterial color={pantsColor} roughness={0.55} metalness={0.15} />
+          <meshStandardMaterial map={leatherTex(1)} color={pantsColor} roughness={0.52} metalness={0.15} />
         </mesh>
         {/* Lower leg */}
         <mesh castShadow position={[0, -0.15, 0]}>
           <cylinderGeometry args={[0.12, 0.1, 0.52, 10]} />
-          <meshStandardMaterial color={pantsColor} roughness={0.55} metalness={0.1} />
+          <meshStandardMaterial map={leatherTex(1)} color={pantsColor} roughness={0.52} metalness={0.1} />
         </mesh>
-        {/* Knee guard */}
+        {/* Knee guard – metal texture */}
         <mesh castShadow position={[0, 0.0, 0.04]}>
           <sphereGeometry args={[0.1, 8, 8]} />
-          <meshStandardMaterial color={armorColor} roughness={0.3} metalness={0.55} />
+          <meshStandardMaterial map={metalTex(1)} color={armorColor} roughness={0.28} metalness={0.58} />
         </mesh>
-        {/* Boot */}
+        {/* Boot – leather texture */}
         <mesh castShadow position={[0, -0.47, 0.05]}>
           <boxGeometry args={[0.19, 0.15, 0.3]} />
-          <meshStandardMaterial color={bootsColor} roughness={0.85} metalness={0.1} />
+          <meshStandardMaterial map={leatherTex(1)} color={bootsColor} roughness={0.82} metalness={0.1} />
         </mesh>
         {/* Boot buckle */}
         <mesh castShadow position={[0, -0.42, 0.2]}>
@@ -384,43 +428,43 @@ export default function Player() {
         </mesh>
         <mesh castShadow position={[0, -0.15, 0]}>
           <cylinderGeometry args={[0.12, 0.1, 0.52, 10]} />
-          <meshStandardMaterial color={pantsColor} roughness={0.55} metalness={0.1} />
+          <meshStandardMaterial map={leatherTex(1)} color={pantsColor} roughness={0.52} metalness={0.1} />
         </mesh>
-        {/* Knee guard */}
+        {/* Knee guard – metal */}
         <mesh castShadow position={[0, 0.0, 0.04]}>
           <sphereGeometry args={[0.1, 8, 8]} />
-          <meshStandardMaterial color={armorColor} roughness={0.3} metalness={0.55} />
+          <meshStandardMaterial map={metalTex(1)} color={armorColor} roughness={0.28} metalness={0.58} />
         </mesh>
         <mesh castShadow position={[0, -0.47, 0.05]}>
           <boxGeometry args={[0.19, 0.15, 0.3]} />
-          <meshStandardMaterial color={bootsColor} roughness={0.85} metalness={0.1} />
+          <meshStandardMaterial map={leatherTex(1)} color={bootsColor} roughness={0.82} metalness={0.1} />
         </mesh>
         <mesh castShadow position={[0, -0.42, 0.2]}>
           <boxGeometry args={[0.1, 0.05, 0.03]} />
-          <meshStandardMaterial color="#888860" roughness={0.3} metalness={0.8} />
+          <meshStandardMaterial map={goldTex()} color="#888860" roughness={0.28} metalness={0.82} />
         </mesh>
       </group>
 
       {/* ── TORSO / CHEST ARMOR ───────────────────────────────────────────── */}
       <mesh ref={torsoRef} castShadow position={[0, 1.0, 0]}>
         <boxGeometry args={[0.72, 0.78, 0.42]} />
-        <meshStandardMaterial color={armorColor} roughness={0.35} metalness={0.5} />
+        <meshStandardMaterial map={metalTex(2)} color={armorColor} roughness={0.32} metalness={0.52} />
       </mesh>
-      {/* Chest detail lines */}
+      {/* Chest detail lines – polished metal */}
       <mesh castShadow position={[0, 1.08, 0.22]}>
         <boxGeometry args={[0.5, 0.55, 0.04]} />
-        <meshStandardMaterial color={armorColor} roughness={0.2} metalness={0.7} emissive={armorColor} emissiveIntensity={0.08} />
+        <meshStandardMaterial map={metalTex(1)} color={armorColor} roughness={0.18} metalness={0.72} emissive={armorColor} emissiveIntensity={0.08} />
       </mesh>
-      {/* Center chest gem */}
+      {/* Center chest gem – crystal texture */}
       <mesh ref={chestGemRef} castShadow position={[0, 1.12, 0.24]}>
         <octahedronGeometry args={[0.07]} />
-        <meshStandardMaterial color={armorColor} roughness={0.05} metalness={0.1} emissive={armorColor} emissiveIntensity={0.6} />
+        <meshStandardMaterial map={crystalTex()} color={armorColor} roughness={0.04} metalness={0.1} emissive={armorColor} emissiveIntensity={0.6} />
       </mesh>
 
-      {/* Shoulder pauldrons */}
+      {/* Shoulder pauldrons – metal texture */}
       <mesh castShadow position={[-0.45, 1.27, 0]}>
         <sphereGeometry args={[0.18, 10, 10]} />
-        <meshStandardMaterial color={armorColor} roughness={0.25} metalness={0.6} />
+        <meshStandardMaterial map={metalTex(1)} color={armorColor} roughness={0.22} metalness={0.62} />
       </mesh>
       <mesh castShadow position={[-0.45, 1.27, 0]}>
         <sphereGeometry args={[0.19, 10, 10]} />
@@ -428,35 +472,35 @@ export default function Player() {
       </mesh>
       <mesh castShadow position={[0.45, 1.27, 0]}>
         <sphereGeometry args={[0.18, 10, 10]} />
-        <meshStandardMaterial color={armorColor} roughness={0.25} metalness={0.6} />
+        <meshStandardMaterial map={metalTex(1)} color={armorColor} roughness={0.22} metalness={0.62} />
       </mesh>
       <mesh castShadow position={[0.45, 1.27, 0]}>
         <sphereGeometry args={[0.19, 10, 10]} />
         <meshStandardMaterial color={darkArmorTrim} roughness={0.5} metalness={0.4} transparent opacity={0.5} side={THREE.BackSide} />
       </mesh>
 
-      {/* Belt */}
+      {/* Belt – leather texture */}
       <mesh castShadow position={[0, 0.68, 0]}>
         <boxGeometry args={[0.74, 0.11, 0.44]} />
-        <meshStandardMaterial color="#4a3a20" roughness={0.75} metalness={0.25} />
+        <meshStandardMaterial map={leatherTex(1)} color="#4a3a20" roughness={0.72} metalness={0.22} />
       </mesh>
-      {/* Belt buckle */}
+      {/* Belt buckle – gold texture */}
       <mesh castShadow position={[0, 0.68, 0.23]}>
         <boxGeometry args={[0.13, 0.11, 0.04]} />
-        <meshStandardMaterial color="#ccaa44" roughness={0.25} metalness={0.85} />
+        <meshStandardMaterial map={goldTex()} color="#ccaa44" roughness={0.22} metalness={0.88} />
       </mesh>
 
       {/* ── LEFT ARM ─────────────────────────────────────────────────────── */}
       <group ref={leftArmRef} position={[-0.47, 1.12, 0]}>
-        {/* Upper arm */}
+        {/* Upper arm – metal */}
         <mesh castShadow position={[0, -0.2, 0]}>
           <cylinderGeometry args={[0.13, 0.11, 0.47, 10]} />
-          <meshStandardMaterial color={armorColor} roughness={0.35} metalness={0.4} />
+          <meshStandardMaterial map={metalTex(1)} color={armorColor} roughness={0.32} metalness={0.42} />
         </mesh>
         {/* Elbow guard */}
         <mesh castShadow position={[0, -0.4, 0]}>
           <sphereGeometry args={[0.1, 8, 8]} />
-          <meshStandardMaterial color={armorColor} roughness={0.25} metalness={0.55} />
+          <meshStandardMaterial map={metalTex(1)} color={armorColor} roughness={0.22} metalness={0.58} />
         </mesh>
         {/* Forearm */}
         <mesh castShadow position={[0, -0.57, 0]}>
@@ -472,15 +516,15 @@ export default function Player() {
 
       {/* ── RIGHT ARM (holds weapon) ─────────────────────────────────────── */}
       <group ref={rightArmRef} position={[0.47, 1.12, 0]}>
-        {/* Upper arm */}
+        {/* Upper arm – metal */}
         <mesh castShadow position={[0, -0.2, 0]}>
           <cylinderGeometry args={[0.13, 0.11, 0.47, 10]} />
-          <meshStandardMaterial color={armorColor} roughness={0.35} metalness={0.4} />
+          <meshStandardMaterial map={metalTex(1)} color={armorColor} roughness={0.32} metalness={0.42} />
         </mesh>
         {/* Elbow guard */}
         <mesh castShadow position={[0, -0.4, 0]}>
           <sphereGeometry args={[0.1, 8, 8]} />
-          <meshStandardMaterial color={armorColor} roughness={0.25} metalness={0.55} />
+          <meshStandardMaterial map={metalTex(1)} color={armorColor} roughness={0.22} metalness={0.58} />
         </mesh>
         {/* Forearm */}
         <mesh castShadow position={[0, -0.57, 0]}>
@@ -496,52 +540,64 @@ export default function Player() {
         <group ref={weaponRef} position={[0, -1.02, 0]}>
           {hasWeapon ? (
             <>
-              {/* Blade */}
+              {/* Blade – metal texture */}
               <mesh castShadow position={[0, -0.48, 0]}>
                 <boxGeometry args={[0.065, 0.95, 0.045]} />
                 <meshStandardMaterial
+                  map={metalTex(1)}
                   color={weaponColor}
-                  roughness={0.1}
-                  metalness={0.97}
+                  roughness={0.08}
+                  metalness={0.98}
                   emissive={weaponColor}
-                  emissiveIntensity={0.35}
+                  emissiveIntensity={0.38}
                 />
               </mesh>
-              {/* Blade tip */}
-              <mesh castShadow position={[0, -0.98, 0]}>
-                <coneGeometry args={[0.035, 0.18, 4]} />
-                <meshStandardMaterial color={weaponColor} roughness={0.1} metalness={0.97} emissive={weaponColor} emissiveIntensity={0.35} />
-              </mesh>
-              {/* Crossguard */}
+              {/* Blade tip wrapped in Trail – trail follows the tip during swings */}
+              <Trail
+                color={weaponColor}
+                width={0.22}
+                length={8}
+                decay={3}
+                local={true}
+                stride={0}
+                interval={1}
+                attenuation={(width) => width * width}
+              >
+                <mesh castShadow position={[0, -0.98, 0]}>
+                  <coneGeometry args={[0.035, 0.18, 4]} />
+                  <meshStandardMaterial map={metalTex(1)} color={weaponColor} roughness={0.08} metalness={0.98} emissive={weaponColor} emissiveIntensity={0.38} />
+                </mesh>
+              </Trail>
+              {/* Crossguard – gold texture */}
               <mesh castShadow position={[0, -0.05, 0]}>
                 <boxGeometry args={[0.32, 0.065, 0.065]} />
-                <meshStandardMaterial color="#9a8a60" roughness={0.25} metalness={0.85} />
+                <meshStandardMaterial map={goldTex()} color="#9a8a60" roughness={0.22} metalness={0.88} />
               </mesh>
-              {/* Crossguard gems */}
+              {/* Crossguard gems – crystal texture */}
               <mesh position={[-0.17, -0.05, 0]}>
                 <sphereGeometry args={[0.03, 6, 6]} />
-                <meshStandardMaterial color={weaponColor} emissive={weaponColor} emissiveIntensity={1.2} />
+                <meshStandardMaterial map={crystalTex()} color={weaponColor} emissive={weaponColor} emissiveIntensity={1.2} />
               </mesh>
               <mesh position={[0.17, -0.05, 0]}>
                 <sphereGeometry args={[0.03, 6, 6]} />
-                <meshStandardMaterial color={weaponColor} emissive={weaponColor} emissiveIntensity={1.2} />
+                <meshStandardMaterial map={crystalTex()} color={weaponColor} emissive={weaponColor} emissiveIntensity={1.2} />
               </mesh>
-              {/* Grip */}
+              {/* Grip – leather texture */}
               <mesh castShadow position={[0, 0.12, 0]}>
                 <cylinderGeometry args={[0.042, 0.038, 0.28, 10]} />
-                <meshStandardMaterial color="#4a2a10" roughness={0.88} />
+                <meshStandardMaterial map={leatherTex(1)} color="#4a2a10" roughness={0.85} />
               </mesh>
               {/* Grip wrapping */}
               {[0.04, 0.1, 0.18].map((y, i) => (
                 <mesh key={i} castShadow position={[0, y, 0]}>
                   <torusGeometry args={[0.043, 0.008, 6, 12]} />
-                  <meshStandardMaterial color="#7a5a30" roughness={0.7} metalness={0.3} />
+                  <meshStandardMaterial map={leatherTex(1)} color="#7a5a30" roughness={0.68} metalness={0.3} />
                 </mesh>
               ))}
-              {/* Pommel */}
+              {/* Pommel – gold texture */}
               <mesh castShadow position={[0, 0.27, 0]}>
                 <sphereGeometry args={[0.065, 10, 10]} />
-                <meshStandardMaterial color="#9a8a60" roughness={0.25} metalness={0.85} />
+                <meshStandardMaterial map={goldTex()} color="#9a8a60" roughness={0.22} metalness={0.88} />
               </mesh>
               {/* Weapon glow */}
               <pointLight ref={weaponGlowRef} color={weaponColor} intensity={1.0} distance={3} />
@@ -606,10 +662,10 @@ export default function Player() {
           <boxGeometry args={[0.06, 0.06, 0.06]} />
           <meshStandardMaterial color={skinColor} roughness={0.6} />
         </mesh>
-        {/* Helmet/headband */}
+        {/* Helmet/headband – metal texture */}
         <mesh castShadow position={[0, 0.1, 0]}>
           <boxGeometry args={[0.47, 0.085, 0.44]} />
-          <meshStandardMaterial color={armorColor} roughness={0.25} metalness={0.65} />
+          <meshStandardMaterial map={metalTex(1)} color={armorColor} roughness={0.22} metalness={0.68} />
         </mesh>
         {/* Helmet front crest */}
         <mesh castShadow position={[0, 0.16, 0.22]}>

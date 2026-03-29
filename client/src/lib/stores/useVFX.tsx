@@ -2,7 +2,7 @@ import { create } from "zustand";
 
 export interface VFXEffect {
   id: string;
-  type: "hit" | "death" | "levelup" | "ability" | "impact";
+  type: "hit" | "death" | "levelup" | "ability" | "impact" | "loot" | "footstep";
   position: { x: number; y: number; z: number };
   color: string;
   timestamp: number;

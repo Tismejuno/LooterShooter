@@ -297,6 +297,198 @@ function LevelUpSpiral({ effect }: { effect: VFXEffect }) {
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
+// Ground impact ring – fired when a projectile hits the ground / a wall
+// ──────────────────────────────────────────────────────────────────────────────
+function ImpactRing({ effect }: { effect: VFXEffect }) {
+  const MAX_AGE = 0.5;
+  const startTimeRef = useRef<number | null>(null);
+  const ring1Ref = useRef<THREE.Mesh>(null);
+  const ring2Ref = useRef<THREE.Mesh>(null);
+  const { removeEffect } = useVFX();
+
+  useFrame((state) => {
+    if (startTimeRef.current === null) startTimeRef.current = state.clock.elapsedTime;
+    const age = state.clock.elapsedTime - startTimeRef.current;
+    const t = age / MAX_AGE;
+
+    if (age > MAX_AGE) {
+      removeEffect(effect.id);
+      return;
+    }
+
+    const easeOut = 1 - (1 - t) * (1 - t);
+    if (ring1Ref.current) {
+      const s = 1 + easeOut * 4;
+      ring1Ref.current.scale.set(s, s, s);
+      (ring1Ref.current.material as THREE.MeshBasicMaterial).opacity = Math.max(0, 0.7 - t);
+    }
+    if (ring2Ref.current) {
+      const s = 1 + easeOut * 2;
+      ring2Ref.current.scale.set(s, s, s);
+      (ring2Ref.current.material as THREE.MeshBasicMaterial).opacity = Math.max(0, 0.5 - t * 0.8);
+    }
+  });
+
+  return (
+    <group position={[effect.position.x, effect.position.y + 0.05, effect.position.z]}>
+      <mesh ref={ring1Ref} rotation={[-Math.PI / 2, 0, 0]}>
+        <ringGeometry args={[0.2, 0.35, 24]} />
+        <meshBasicMaterial color={effect.color} transparent opacity={0.7} side={THREE.DoubleSide} depthWrite={false} />
+      </mesh>
+      <mesh ref={ring2Ref} rotation={[-Math.PI / 2, 0, 0]}>
+        <ringGeometry args={[0.35, 0.55, 24]} />
+        <meshBasicMaterial color={effect.color} transparent opacity={0.4} side={THREE.DoubleSide} depthWrite={false} />
+      </mesh>
+    </group>
+  );
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Loot pickup sparkle – golden stars burst upward when an item is collected
+// ──────────────────────────────────────────────────────────────────────────────
+function LootPickup({ effect }: { effect: VFXEffect }) {
+  const COUNT = 20;
+  const MAX_AGE = 0.8;
+  const startTimeRef = useRef<number | null>(null);
+  const posAttr = useRef<THREE.BufferAttribute>(null);
+  const pointsRef = useRef<THREE.Points>(null);
+  const ringRef = useRef<THREE.Mesh>(null);
+  const { removeEffect } = useVFX();
+
+  const { positions, velocities } = useMemo(() => {
+    const pos = new Float32Array(COUNT * 3);
+    const vel = new Float32Array(COUNT * 3);
+    for (let i = 0; i < COUNT; i++) {
+      pos[i * 3] = effect.position.x;
+      pos[i * 3 + 1] = effect.position.y + 0.3;
+      pos[i * 3 + 2] = effect.position.z;
+      const theta = Math.random() * Math.PI * 2;
+      const speed = 1.5 + Math.random() * 2.5;
+      vel[i * 3] = Math.cos(theta) * speed * 0.5;
+      vel[i * 3 + 1] = 2 + Math.random() * 3;
+      vel[i * 3 + 2] = Math.sin(theta) * speed * 0.5;
+    }
+    return { positions: pos, velocities: vel };
+  }, [effect.position]);
+
+  useFrame((state) => {
+    if (startTimeRef.current === null) startTimeRef.current = state.clock.elapsedTime;
+    const age = state.clock.elapsedTime - startTimeRef.current;
+    const t = age / MAX_AGE;
+
+    if (age > MAX_AGE) {
+      removeEffect(effect.id);
+      return;
+    }
+
+    if (posAttr.current) {
+      const arr = posAttr.current.array as Float32Array;
+      const dt = 0.016;
+      for (let i = 0; i < COUNT; i++) {
+        arr[i * 3] += velocities[i * 3] * dt;
+        arr[i * 3 + 1] += velocities[i * 3 + 1] * dt;
+        arr[i * 3 + 2] += velocities[i * 3 + 2] * dt;
+        velocities[i * 3 + 1] -= 8 * dt;
+      }
+      posAttr.current.needsUpdate = true;
+
+      if (pointsRef.current) {
+        const mat = pointsRef.current.material as THREE.PointsMaterial;
+        mat.opacity = Math.max(0, 1 - t * 1.2);
+        mat.size = 0.22 + Math.sin(age * 20) * 0.06;
+      }
+    }
+
+    // Expand fading ring
+    if (ringRef.current) {
+      const s = 1 + t * 3;
+      ringRef.current.scale.set(s, s, s);
+      (ringRef.current.material as THREE.MeshBasicMaterial).opacity = Math.max(0, 0.8 - t * 1.5);
+    }
+  });
+
+  return (
+    <>
+      <points ref={pointsRef}>
+        <bufferGeometry>
+          <bufferAttribute ref={posAttr} attach="attributes-position" args={[positions, 3]} />
+        </bufferGeometry>
+        <pointsMaterial color={effect.color} size={0.22} transparent opacity={1} sizeAttenuation depthWrite={false} />
+      </points>
+      <mesh ref={ringRef} position={[effect.position.x, effect.position.y + 0.05, effect.position.z]} rotation={[-Math.PI / 2, 0, 0]}>
+        <ringGeometry args={[0.15, 0.4, 24]} />
+        <meshBasicMaterial color={effect.color} transparent opacity={0.8} side={THREE.DoubleSide} depthWrite={false} />
+      </mesh>
+    </>
+  );
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Footstep dust – tiny ground puff when the player steps
+// ──────────────────────────────────────────────────────────────────────────────
+function FootstepDust({ effect }: { effect: VFXEffect }) {
+  const COUNT = 6;
+  const MAX_AGE = 0.4;
+  const startTimeRef = useRef<number | null>(null);
+  const posAttr = useRef<THREE.BufferAttribute>(null);
+  const pointsRef = useRef<THREE.Points>(null);
+  const { removeEffect } = useVFX();
+
+  const { positions, velocities } = useMemo(() => {
+    const pos = new Float32Array(COUNT * 3);
+    const vel = new Float32Array(COUNT * 3);
+    for (let i = 0; i < COUNT; i++) {
+      pos[i * 3] = effect.position.x + (Math.random() - 0.5) * 0.2;
+      pos[i * 3 + 1] = effect.position.y + 0.05;
+      pos[i * 3 + 2] = effect.position.z + (Math.random() - 0.5) * 0.2;
+      const theta = Math.random() * Math.PI * 2;
+      const speed = 0.4 + Math.random() * 0.8;
+      vel[i * 3] = Math.cos(theta) * speed;
+      vel[i * 3 + 1] = 0.3 + Math.random() * 0.5;
+      vel[i * 3 + 2] = Math.sin(theta) * speed;
+    }
+    return { positions: pos, velocities: vel };
+  }, [effect.position]);
+
+  useFrame((state) => {
+    if (startTimeRef.current === null) startTimeRef.current = state.clock.elapsedTime;
+    const age = state.clock.elapsedTime - startTimeRef.current;
+    const t = age / MAX_AGE;
+
+    if (age > MAX_AGE) {
+      removeEffect(effect.id);
+      return;
+    }
+
+    if (posAttr.current) {
+      const arr = posAttr.current.array as Float32Array;
+      const dt = 0.016;
+      for (let i = 0; i < COUNT; i++) {
+        arr[i * 3] += velocities[i * 3] * dt;
+        arr[i * 3 + 1] += velocities[i * 3 + 1] * dt;
+        arr[i * 3 + 2] += velocities[i * 3 + 2] * dt;
+        velocities[i * 3 + 1] -= 4 * dt;
+      }
+      posAttr.current.needsUpdate = true;
+
+      if (pointsRef.current) {
+        const mat = pointsRef.current.material as THREE.PointsMaterial;
+        mat.opacity = Math.max(0, 0.6 - t * 1.2);
+      }
+    }
+  });
+
+  return (
+    <points ref={pointsRef}>
+      <bufferGeometry>
+        <bufferAttribute ref={posAttr} attach="attributes-position" args={[positions, 3]} />
+      </bufferGeometry>
+      <pointsMaterial color={effect.color} size={0.14} transparent opacity={0.6} sizeAttenuation depthWrite={false} />
+    </points>
+  );
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
 // Root VFXSystem – maps active effects to their renderer
 // ──────────────────────────────────────────────────────────────────────────────
 export default function VFXSystem() {
@@ -314,6 +506,12 @@ export default function VFXSystem() {
             return <AbilityRing key={effect.id} effect={effect} />;
           case "levelup":
             return <LevelUpSpiral key={effect.id} effect={effect} />;
+          case "impact":
+            return <ImpactRing key={effect.id} effect={effect} />;
+          case "loot":
+            return <LootPickup key={effect.id} effect={effect} />;
+          case "footstep":
+            return <FootstepDust key={effect.id} effect={effect} />;
           default:
             return null;
         }
