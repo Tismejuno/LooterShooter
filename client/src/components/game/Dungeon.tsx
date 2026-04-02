@@ -1,5 +1,5 @@
 import { useTexture } from "@react-three/drei";
-import { useMemo, useRef } from "react";
+import { useMemo, useRef, useEffect } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { useDungeon } from "../../lib/stores/useDungeon";
@@ -484,23 +484,31 @@ export default function Dungeon() {
   const sandTexture = useTexture("/textures/sand.png");
   const { rooms, walls } = useDungeon();
 
-  useMemo(() => {
+  useEffect(() => {
     grassTexture.wrapS = grassTexture.wrapT = THREE.RepeatWrapping;
     grassTexture.repeat.set(8, 8);
+    grassTexture.needsUpdate = true;
     asphaltTexture.wrapS = asphaltTexture.wrapT = THREE.RepeatWrapping;
     asphaltTexture.repeat.set(6, 6);
+    asphaltTexture.needsUpdate = true;
     woodTexture.wrapS = woodTexture.wrapT = THREE.RepeatWrapping;
     woodTexture.repeat.set(2, 2);
+    woodTexture.needsUpdate = true;
     lavaTexture.wrapS = lavaTexture.wrapT = THREE.RepeatWrapping;
     lavaTexture.repeat.set(3, 3);
+    lavaTexture.needsUpdate = true;
     snowTexture.wrapS = snowTexture.wrapT = THREE.RepeatWrapping;
     snowTexture.repeat.set(4, 4);
+    snowTexture.needsUpdate = true;
     skyTexture.wrapS = skyTexture.wrapT = THREE.RepeatWrapping;
     skyTexture.repeat.set(1, 1);
+    skyTexture.needsUpdate = true;
     woodPlankTexture.wrapS = woodPlankTexture.wrapT = THREE.RepeatWrapping;
     woodPlankTexture.repeat.set(2, 2);
+    woodPlankTexture.needsUpdate = true;
     sandTexture.wrapS = sandTexture.wrapT = THREE.RepeatWrapping;
     sandTexture.repeat.set(3, 3);
+    sandTexture.needsUpdate = true;
   }, [grassTexture, asphaltTexture, woodTexture, lavaTexture, snowTexture, skyTexture, woodPlankTexture, sandTexture]);
 
   return (
