@@ -57,7 +57,16 @@ const WEAPONS = {
   special: [
     'Frostblade', 'Lava Shard', 'Cloud Scepter', 'Crystal Shiv',
     'Vine Whip', 'Ember Lance', 'Skybow', 'Glacial Cleaver',
-    'Thornbark Club', 'Void Reaver', 'Storm Herald', 'Soul Striker'
+    'Thornbark Club', 'Void Reaver', 'Storm Herald', 'Soul Striker',
+    // Shadow zone weapons
+    'Shadow Reaper', 'Voidbane Edge', 'Nightmare Cutter', 'Soul Drinker',
+    'Umbral Fang', 'Darkweave Blade', 'Eclipse Shard',
+    // Abyss zone weapons
+    'Abyssal Trident', 'Depth Piercer', 'Leviathan Spine', 'Pressure Blade',
+    'Tide Ripper', 'Deep Current Lance', 'Crushing Dark Mace',
+    // Forge zone weapons
+    'Eternal Hammer', 'Forge Titan Maul', 'Primordial Anvil Blade',
+    'Iron Verdict', 'Magma-Forged Axe', 'Creation Breaker',
   ],
 };
 
@@ -69,31 +78,73 @@ const WEAPON_NAMES_FLAT = [
 const ARMOR_TYPES = {
   helmets: [
     'Iron Helm', "Knight's Visor", "Ranger's Hood", "Mage's Hat", 'Dark Cowl',
-    'Barbute Helmet', 'Bascinet', 'War Mask', 'Crystal Crown', 'Serpent Helm'
+    'Barbute Helmet', 'Bascinet', 'War Mask', 'Crystal Crown', 'Serpent Helm',
+    // Shadow set
+    "Malachar's Shadow Cowl", 'Void-Walker Hood', 'Umbral Helm', 'Soul-Bound Circlet',
+    // Abyss set
+    'Abyssal Pressure Helm', 'Leviathan Scale Hood', 'Deep Diver Helm', 'Tide-Blessed Crown',
+    // Forge set
+    'Forge Titan Helm', 'Eternal Iron Visor', 'Primordial Plate Helm', "Vorn's War Mask",
   ],
   chestplates: [
     'Chainmail', 'Plate Armor', 'Leather Vest', 'Robe of Power', 'Scale Mail',
-    'Brigandine', 'Full Plate', 'Shadow Wraith Coat', 'Dragon Scale Cuirass', 'Void Mantle'
+    'Brigandine', 'Full Plate', 'Shadow Wraith Coat', 'Dragon Scale Cuirass', 'Void Mantle',
+    // Shadow set
+    "Malachar's Shadow Shroud", 'Void-Walker Coat', 'Umbral Plate', 'Soul Harvester Mantle',
+    // Abyss set
+    'Abyssal Scale Cuirass', 'Leviathan Carapace', 'Pressure-Forged Plate', 'Tidal Robe',
+    // Forge set
+    'Forge Titan Chestplate', 'Eternal Iron Plate', 'Primordial Anvil Cuirass', "Vorn's Iron Mantle",
   ],
   boots: [
     'Iron Boots', 'Swift Boots', 'Shadowstep Boots', "Mage's Slippers",
-    'Greaves of Haste', 'Stone Boots', 'Winged Sandals', 'Dark Leather Treads'
+    'Greaves of Haste', 'Stone Boots', 'Winged Sandals', 'Dark Leather Treads',
+    // Shadow set
+    "Malachar's Shadow Treads", 'Void-Walker Boots', 'Umbral Greaves', 'Soul-Strider Boots',
+    // Abyss set
+    'Abyssal Depth Greaves', 'Leviathan Scale Boots', 'Pressure-Seal Treads', 'Tidal Waders',
+    // Forge set
+    'Forge Titan Greaves', 'Eternal Iron Boots', 'Primordial Forged Treads', "Vorn's Iron Stompers",
   ],
   gauntlets: [
     'Iron Gauntlets', 'Spiked Gloves', 'Mage Wraps', 'Dragon Claw Gauntlets',
-    'Shadow Grip', 'Holy Vambraces', 'Battle Mitts', 'Crystal Knuckles'
+    'Shadow Grip', 'Holy Vambraces', 'Battle Mitts', 'Crystal Knuckles',
+    // Shadow set
+    "Malachar's Void Grip", 'Umbral Gauntlets', 'Soul-Bound Bracers', 'Night Weave Gloves',
+    // Abyss set
+    'Abyssal Pressure Gauntlets', 'Leviathan Claw Wraps', 'Deep Tide Bracers', 'Crushing Depth Vambraces',
+    // Forge set
+    'Forge Titan Gauntlets', 'Eternal Iron Fists', 'Primordial Anvil Gloves', "Vorn's Forged Vambraces",
   ],
   shields: [
     'Buckler', 'Tower Shield', 'Dragon Shield', 'Magic Barrier',
-    'Kite Shield', 'Heater Shield', 'Round Shield', 'Aegis Fragment'
+    'Kite Shield', 'Heater Shield', 'Round Shield', 'Aegis Fragment',
+    // Shadow set
+    'Void-Walker Ward', 'Umbral Barrier', "Malachar's Shadow Bulwark",
+    // Abyss set
+    'Abyssal Tide Ward', 'Leviathan Scale Shield', 'Pressure Barrier',
+    // Forge set
+    'Forge Titan Bulwark', 'Eternal Iron Shield', "Vorn's Forged Ward",
   ],
   cloaks: [
     'Shadow Cloak', 'Wind Cloak', 'Ember Cloak', 'Frost Mantle',
-    'Verdant Cape', "Assassin's Shroud", 'Celestial Veil', 'Bone Mantle'
+    'Verdant Cape', "Assassin's Shroud", 'Celestial Veil', 'Bone Mantle',
+    // Shadow set
+    "Malachar's Void Shroud", 'Umbral Cloak', 'Soul-Weave Mantle', 'Night Wrap',
+    // Abyss set
+    'Abyssal Current Cloak', 'Leviathan Skin Drape', 'Tidal Veil', 'Deep Sea Mantle',
+    // Forge set
+    'Forge Titan Cape', 'Ember-Iron Cloak', "Vorn's Molten Mantle",
   ],
   belts: [
     'War Belt', 'Scout Belt', 'Mystic Sash', 'Titan Girdle',
-    'Shadow Wrap', 'Battle Harness', 'Enchanted Cord', 'Dragon Leather Belt'
+    'Shadow Wrap', 'Battle Harness', 'Enchanted Cord', 'Dragon Leather Belt',
+    // Shadow set
+    "Malachar's Void Girdle", 'Umbral Sash', 'Soul-Wrapped Belt', 'Night Weave Cord',
+    // Abyss set
+    'Abyssal Pressure Girdle', 'Leviathan Hide Belt', 'Deep Tide Sash', 'Current-Blessed Cord',
+    // Forge set
+    'Forge Titan Girdle', 'Eternal Iron Sash', "Vorn's Forged Belt", 'Primordial Anvil Cord',
   ],
 };
 
@@ -205,6 +256,15 @@ const LEGENDARY_UNIQUES = [
   "Zephyr's Cloud Mantle", 'Verdant Crown of the Forest',
   "Voidwalker's Shroud", 'The Eternal Flame', "Titan's Last Stand",
   "Shadowmeld Dagger", 'Worldbreaker', 'Starfall Bow',
+  // Shadow zone legendaries
+  "Malachar's Soul Reaper", 'The Shadow Sovereign Crown', 'Umbral Void Edge',
+  'Eternal Darkness Mantle', 'Soul-Forged Nightmare Blade',
+  // Abyss zone legendaries
+  "Xerath's Scale Shard", 'Leviathan Heart', 'Abyssal Pressure Crown',
+  'Primordial Depth Trident', 'Crushing Dark of the Abyss',
+  // Forge zone legendaries
+  "Vorn's Creation Hammer", 'The Eternal Forge Plate', 'Primordial Anvil',
+  'Iron Birth of the Universe', "Forge Titan's Last Stand",
 ];
 
 // ─── PREFIXES / SUFFIXES ─────────────────────────────────────────────────────
@@ -214,6 +274,9 @@ const WEAPON_PREFIXES = [
   'Vengeful', 'Divine', 'Frostbitten', 'Volcanic', 'Crystal', 'Stormborn',
   'Verdant', 'Glacial', 'Infernal', 'Celestial', 'Arcane', 'Thunderous',
   'Voidtouched', 'Serrated', 'Bloodied', 'Shadowforged', 'Heroic',
+  'Umbral', 'Soul-Draining', 'Night-Forged', 'Abyssal', 'Tide-Blessed',
+  'Deep-Forged', 'Pressure-Bound', 'Primal', 'Eternal', 'Primordial',
+  'Titan-Forged', 'Molten', 'Iron-Born', 'Creation-Touched',
 ];
 
 const ARMOR_PREFIXES = [
@@ -221,6 +284,9 @@ const ARMOR_PREFIXES = [
   'Holy', 'Ethereal', 'Titan', 'Frozen', 'Ember', 'Cloudweave', 'Crystalline',
   'Mossgrown', 'Volcanic', 'Stormforged', 'Astral', 'Verdant', 'Glacial',
   'Void-tempered', 'Warded', 'Runed', 'Nightforged', 'Sunblessed',
+  'Umbral', 'Soul-Touched', 'Abyssal', 'Pressure-Forged', 'Tidal',
+  'Depth-Tempered', 'Leviathan-Scale', 'Primordial', 'Eternal-Iron',
+  'Forge-Blessed', 'Titan-Wrought', 'Molten-Tempered', 'Creation-Forged',
 ];
 
 // ─── RARITY CONFIG ───────────────────────────────────────────────────────────

@@ -607,6 +607,378 @@ function DemonModel({ isAttacking }: { isAttacking: boolean }) {
   );
 }
 
+// Shadow Sovereign - dark spectral being with tendrils and void magic
+function ShadowSovereignModel({ isAttacking }: { isAttacking: boolean }) {
+  const leftArmRef = useRef<THREE.Group>(null);
+  const rightArmRef = useRef<THREE.Group>(null);
+  const bodyRef = useRef<THREE.Mesh>(null);
+  const auraRef = useRef<THREE.Mesh>(null);
+  const tendrilGroupRef = useRef<THREE.Group>(null);
+
+  useFrame((state) => {
+    const t = state.clock.elapsedTime;
+    const sway = Math.sin(t * 2.5) * 0.08;
+    if (bodyRef.current) bodyRef.current.rotation.y = sway * 2;
+    if (auraRef.current) {
+      const mat = auraRef.current.material as THREE.MeshBasicMaterial;
+      mat.opacity = 0.25 + Math.sin(t * 3) * 0.12 + (isAttacking ? 0.15 : 0);
+      auraRef.current.scale.setScalar(1.0 + Math.sin(t * 4) * 0.06);
+    }
+    if (leftArmRef.current) {
+      leftArmRef.current.rotation.z = 0.4 + Math.sin(t * 2.5) * (isAttacking ? 0.8 : 0.3);
+    }
+    if (rightArmRef.current) {
+      rightArmRef.current.rotation.z = -0.4 - Math.sin(t * 2.5 + 0.5) * (isAttacking ? 0.8 : 0.3);
+      rightArmRef.current.rotation.x = isAttacking ? -Math.abs(Math.sin(t * 5)) * 0.6 : 0;
+    }
+    if (tendrilGroupRef.current) {
+      tendrilGroupRef.current.children.forEach((child, i) => {
+        child.rotation.x = Math.sin(t * 1.5 + i * 1.1) * 0.6;
+        child.rotation.z = Math.sin(t * 1.2 + i * 0.9) * 0.4;
+      });
+    }
+  });
+
+  const purple = '#330055';
+  const dark = '#110022';
+  const glow = '#9900ff';
+
+  return (
+    <group>
+      {/* Hovering void aura */}
+      <mesh ref={auraRef} position={[0, 1.2, 0]}>
+        <sphereGeometry args={[1.1, 16, 16]} />
+        <meshBasicMaterial color={glow} transparent opacity={0.25} side={THREE.DoubleSide} depthWrite={false} />
+      </mesh>
+      {/* Spectral body */}
+      <mesh ref={bodyRef} castShadow position={[0, 1.1, 0]}>
+        <capsuleGeometry args={[0.35, 0.8, 8, 16]} />
+        <meshStandardMaterial color={purple} emissive={glow} emissiveIntensity={0.6}
+          roughness={0.1} metalness={0.4} transparent opacity={0.95} />
+      </mesh>
+      {/* Shadow cloak lower body */}
+      <mesh castShadow position={[0, 0.55, 0]}>
+        <coneGeometry args={[0.6, 1.1, 12]} />
+        <meshStandardMaterial color={dark} emissive="#220044" emissiveIntensity={0.4}
+          roughness={0.2} transparent opacity={0.9} />
+      </mesh>
+      {/* Left arm */}
+      <group ref={leftArmRef} position={[-0.5, 1.2, 0]}>
+        <mesh castShadow position={[0, -0.2, 0]}>
+          <cylinderGeometry args={[0.07, 0.06, 0.5, 6]} />
+          <meshStandardMaterial color={purple} emissive={glow} emissiveIntensity={0.3} roughness={0.2} transparent opacity={0.9} />
+        </mesh>
+        <mesh castShadow position={[0, -0.52, 0]}>
+          <cylinderGeometry args={[0.06, 0.05, 0.44, 6]} />
+          <meshStandardMaterial color={purple} emissive={glow} emissiveIntensity={0.3} roughness={0.2} transparent opacity={0.85} />
+        </mesh>
+        <mesh castShadow position={[0, -0.78, 0]}>
+          <sphereGeometry args={[0.09, 8, 8]} />
+          <meshStandardMaterial color={glow} emissive={glow} emissiveIntensity={1.5} />
+        </mesh>
+      </group>
+      {/* Right arm with void orb */}
+      <group ref={rightArmRef} position={[0.5, 1.2, 0]}>
+        <mesh castShadow position={[0, -0.2, 0]}>
+          <cylinderGeometry args={[0.07, 0.06, 0.5, 6]} />
+          <meshStandardMaterial color={purple} emissive={glow} emissiveIntensity={0.3} roughness={0.2} transparent opacity={0.9} />
+        </mesh>
+        <mesh castShadow position={[0, -0.52, 0]}>
+          <cylinderGeometry args={[0.06, 0.05, 0.44, 6]} />
+          <meshStandardMaterial color={purple} emissive={glow} emissiveIntensity={0.3} roughness={0.2} transparent opacity={0.85} />
+        </mesh>
+        {/* Void orb weapon */}
+        <mesh castShadow position={[0, -0.82, 0]}>
+          <sphereGeometry args={[0.14, 10, 10]} />
+          <meshStandardMaterial color={dark} emissive={glow} emissiveIntensity={2.5}
+            roughness={0.05} metalness={0.3} />
+        </mesh>
+        <pointLight position={[0, -0.82, 0]} color={glow} intensity={1.5} distance={3} />
+      </group>
+      {/* Shadow tendrils */}
+      <group ref={tendrilGroupRef}>
+        {Array.from({ length: 6 }, (_, i) => {
+          const angle = (i / 6) * Math.PI * 2;
+          return (
+            <mesh key={i} castShadow
+              position={[Math.cos(angle) * 0.3, 0.4, Math.sin(angle) * 0.3]}>
+              <cylinderGeometry args={[0.04, 0.01, 0.9, 4]} />
+              <meshStandardMaterial color={dark} emissive="#440066" emissiveIntensity={0.5}
+                roughness={0.3} transparent opacity={0.8} />
+            </mesh>
+          );
+        })}
+      </group>
+      {/* Floating hood/mask */}
+      <mesh castShadow position={[0, 1.78, 0]}>
+        <sphereGeometry args={[0.28, 12, 12]} />
+        <meshStandardMaterial color={dark} roughness={0.1} metalness={0.5}
+          emissive="#220044" emissiveIntensity={0.5} />
+      </mesh>
+      {/* Void eyes */}
+      <mesh position={[-0.1, 1.82, 0.22]}>
+        <sphereGeometry args={[0.07, 8, 8]} />
+        <meshStandardMaterial color={glow} emissive={glow} emissiveIntensity={4} />
+      </mesh>
+      <mesh position={[0.1, 1.82, 0.22]}>
+        <sphereGeometry args={[0.07, 8, 8]} />
+        <meshStandardMaterial color={glow} emissive={glow} emissiveIntensity={4} />
+      </mesh>
+      <pointLight position={[0, 1.6, 0]} color={glow} intensity={1.5} distance={6} />
+    </group>
+  );
+}
+
+// Abyssal Leviathan - giant deep-sea serpentine creature
+function AbyssalLeviathanModel({ isAttacking }: { isAttacking: boolean }) {
+  const headRef = useRef<THREE.Group>(null);
+  const body1Ref = useRef<THREE.Mesh>(null);
+  const body2Ref = useRef<THREE.Mesh>(null);
+  const tailRef = useRef<THREE.Mesh>(null);
+  const jawRef = useRef<THREE.Mesh>(null);
+  const leftFinRef = useRef<THREE.Group>(null);
+  const rightFinRef = useRef<THREE.Group>(null);
+
+  const bodyColor = '#001a2a';
+  const scaleColor = '#004466';
+  const glowColor = '#00ccff';
+
+  useFrame((state) => {
+    const t = state.clock.elapsedTime;
+    if (headRef.current) {
+      headRef.current.rotation.y = Math.sin(t * 1.8) * 0.35;
+      headRef.current.rotation.x = isAttacking ? -Math.abs(Math.sin(t * 4)) * 0.4 : Math.sin(t * 1.2) * 0.08;
+    }
+    if (body1Ref.current) body1Ref.current.rotation.z = Math.sin(t * 1.5 + 0.5) * 0.12;
+    if (body2Ref.current) body2Ref.current.rotation.z = Math.sin(t * 1.5 + 1.0) * 0.15;
+    if (tailRef.current) tailRef.current.rotation.z = Math.sin(t * 1.5 + 1.5) * 0.2;
+    if (jawRef.current) {
+      jawRef.current.rotation.x = isAttacking ? Math.abs(Math.sin(t * 5)) * 0.6 : Math.sin(t * 2) * 0.06;
+    }
+    if (leftFinRef.current) leftFinRef.current.rotation.z = 0.4 + Math.sin(t * 2) * 0.2;
+    if (rightFinRef.current) rightFinRef.current.rotation.z = -0.4 - Math.sin(t * 2 + 0.3) * 0.2;
+  });
+
+  return (
+    <group>
+      {/* Tail section */}
+      <mesh ref={tailRef} castShadow position={[0, 0.2, -1.1]}>
+        <capsuleGeometry args={[0.18, 0.8, 4, 8]} />
+        <meshStandardMaterial color={bodyColor} roughness={0.6} metalness={0.3} emissive="#001122" emissiveIntensity={0.2} />
+      </mesh>
+      {/* Lower body */}
+      <mesh ref={body2Ref} castShadow position={[0, 0.4, -0.5]}>
+        <capsuleGeometry args={[0.28, 0.6, 4, 8]} />
+        <meshStandardMaterial color={scaleColor} roughness={0.5} metalness={0.4} />
+      </mesh>
+      {/* Upper body */}
+      <mesh ref={body1Ref} castShadow position={[0, 0.7, 0]}>
+        <capsuleGeometry args={[0.38, 0.5, 4, 10]} />
+        <meshStandardMaterial color={bodyColor} roughness={0.5} metalness={0.35} emissive="#001a2a" emissiveIntensity={0.3} />
+      </mesh>
+      {/* Scale ridges */}
+      {Array.from({ length: 5 }, (_, i) => (
+        <mesh key={i} castShadow position={[0, 0.7 + i * 0.05, 0.35 - i * 0.08]}>
+          <boxGeometry args={[0.6, 0.06, 0.1]} />
+          <meshStandardMaterial color={scaleColor} roughness={0.4} metalness={0.5} emissive="#004466" emissiveIntensity={0.2} />
+        </mesh>
+      ))}
+      {/* Pectoral fins */}
+      <group ref={leftFinRef} position={[-0.52, 0.7, 0.1]}>
+        <mesh castShadow>
+          <boxGeometry args={[0.6, 0.05, 0.35]} />
+          <meshStandardMaterial color={scaleColor} roughness={0.5} metalness={0.3} transparent opacity={0.9} side={THREE.DoubleSide} />
+        </mesh>
+      </group>
+      <group ref={rightFinRef} position={[0.52, 0.7, 0.1]}>
+        <mesh castShadow>
+          <boxGeometry args={[0.6, 0.05, 0.35]} />
+          <meshStandardMaterial color={scaleColor} roughness={0.5} metalness={0.3} transparent opacity={0.9} side={THREE.DoubleSide} />
+        </mesh>
+      </group>
+      {/* Head */}
+      <group ref={headRef} position={[0, 1.05, 0.42]}>
+        <mesh castShadow>
+          <boxGeometry args={[0.62, 0.48, 0.7]} />
+          <meshStandardMaterial color={bodyColor} roughness={0.5} metalness={0.4} emissive="#001122" emissiveIntensity={0.3} />
+        </mesh>
+        {/* Lower jaw */}
+        <mesh ref={jawRef} castShadow position={[0, -0.2, 0.1]}>
+          <boxGeometry args={[0.52, 0.18, 0.55]} />
+          <meshStandardMaterial color={scaleColor} roughness={0.5} metalness={0.4} />
+        </mesh>
+        {/* Bioluminescent eyes */}
+        <mesh position={[-0.2, 0.1, 0.38]}>
+          <sphereGeometry args={[0.1, 8, 8]} />
+          <meshStandardMaterial color={glowColor} emissive={glowColor} emissiveIntensity={3} />
+        </mesh>
+        <mesh position={[0.2, 0.1, 0.38]}>
+          <sphereGeometry args={[0.1, 8, 8]} />
+          <meshStandardMaterial color={glowColor} emissive={glowColor} emissiveIntensity={3} />
+        </mesh>
+        {/* Teeth */}
+        {[-0.2, -0.08, 0.08, 0.2].map((x, i) => (
+          <mesh key={i} castShadow position={[x, -0.28, 0.32]}>
+            <coneGeometry args={[0.03, 0.12, 4]} />
+            <meshStandardMaterial color="#aaffee" roughness={0.3} />
+          </mesh>
+        ))}
+        <pointLight position={[0, 0, 0.4]} color={glowColor} intensity={1.2} distance={4} />
+      </group>
+      {/* Bioluminescent markings */}
+      {Array.from({ length: 4 }, (_, i) => (
+        <mesh key={i} position={[(i % 2 === 0 ? -1 : 1) * 0.32, 0.5 + i * 0.18, 0.3]}>
+          <sphereGeometry args={[0.06, 6, 6]} />
+          <meshStandardMaterial color={glowColor} emissive={glowColor} emissiveIntensity={2.5} />
+        </mesh>
+      ))}
+      <pointLight position={[0, 0.9, 0]} color={glowColor} intensity={0.8} distance={5} />
+    </group>
+  );
+}
+
+// Forge Titan - colossal iron/fire construct wielding giant hammers
+function ForgeTitanModel({ isAttacking }: { isAttacking: boolean }) {
+  const leftArmRef = useRef<THREE.Group>(null);
+  const rightArmRef = useRef<THREE.Group>(null);
+  const leftLegRef = useRef<THREE.Group>(null);
+  const rightLegRef = useRef<THREE.Group>(null);
+  const chestGlowRef = useRef<THREE.Mesh>(null);
+
+  const ironColor = '#2a1a0a';
+  const hotMetal = '#8a3a00';
+  const lavaGlow = '#ff5500';
+
+  useFrame((state) => {
+    const t = state.clock.elapsedTime;
+    const step = Math.sin(t * 2.2) * 0.25;
+    if (leftArmRef.current) leftArmRef.current.rotation.x = step;
+    if (rightArmRef.current) {
+      rightArmRef.current.rotation.x = isAttacking
+        ? -Math.abs(Math.sin(t * 3)) * 1.4
+        : -step;
+    }
+    if (leftLegRef.current) leftLegRef.current.rotation.x = step * 0.7;
+    if (rightLegRef.current) rightLegRef.current.rotation.x = -step * 0.7;
+    if (chestGlowRef.current) {
+      (chestGlowRef.current.material as THREE.MeshStandardMaterial).emissiveIntensity =
+        1.0 + Math.sin(t * 4) * 0.5 + (isAttacking ? 0.5 : 0);
+    }
+  });
+
+  return (
+    <group>
+      {/* Massive legs */}
+      <group ref={leftLegRef} position={[-0.32, 0.6, 0]}>
+        <mesh castShadow position={[0, -0.22, 0]}>
+          <cylinderGeometry args={[0.22, 0.2, 0.55, 8]} />
+          <meshStandardMaterial color={ironColor} roughness={0.5} metalness={0.8} />
+        </mesh>
+        <mesh castShadow position={[0, -0.56, 0]}>
+          <cylinderGeometry args={[0.2, 0.18, 0.5, 8]} />
+          <meshStandardMaterial color={hotMetal} roughness={0.4} metalness={0.7} emissive="#331100" emissiveIntensity={0.4} />
+        </mesh>
+        <mesh castShadow position={[0, -0.86, 0.06]}>
+          <boxGeometry args={[0.3, 0.15, 0.4]} />
+          <meshStandardMaterial color={ironColor} roughness={0.5} metalness={0.8} />
+        </mesh>
+      </group>
+      <group ref={rightLegRef} position={[0.32, 0.6, 0]}>
+        <mesh castShadow position={[0, -0.22, 0]}>
+          <cylinderGeometry args={[0.22, 0.2, 0.55, 8]} />
+          <meshStandardMaterial color={ironColor} roughness={0.5} metalness={0.8} />
+        </mesh>
+        <mesh castShadow position={[0, -0.56, 0]}>
+          <cylinderGeometry args={[0.2, 0.18, 0.5, 8]} />
+          <meshStandardMaterial color={hotMetal} roughness={0.4} metalness={0.7} emissive="#331100" emissiveIntensity={0.4} />
+        </mesh>
+        <mesh castShadow position={[0, -0.86, 0.06]}>
+          <boxGeometry args={[0.3, 0.15, 0.4]} />
+          <meshStandardMaterial color={ironColor} roughness={0.5} metalness={0.8} />
+        </mesh>
+      </group>
+      {/* Massive torso */}
+      <mesh castShadow position={[0, 1.05, 0]}>
+        <boxGeometry args={[1.1, 0.95, 0.65]} />
+        <meshStandardMaterial color={ironColor} roughness={0.4} metalness={0.85} />
+      </mesh>
+      {/* Chest lava core */}
+      <mesh ref={chestGlowRef} castShadow position={[0, 1.1, 0.34]}>
+        <boxGeometry args={[0.5, 0.5, 0.08]} />
+        <meshStandardMaterial color={lavaGlow} emissive={lavaGlow} emissiveIntensity={1.0}
+          roughness={0.2} metalness={0.1} />
+      </mesh>
+      {/* Shoulder pauldrons */}
+      <mesh castShadow position={[-0.7, 1.42, 0]}>
+        <sphereGeometry args={[0.28, 8, 8]} />
+        <meshStandardMaterial color={hotMetal} roughness={0.4} metalness={0.7} emissive="#220800" emissiveIntensity={0.3} />
+      </mesh>
+      <mesh castShadow position={[0.7, 1.42, 0]}>
+        <sphereGeometry args={[0.28, 8, 8]} />
+        <meshStandardMaterial color={hotMetal} roughness={0.4} metalness={0.7} emissive="#220800" emissiveIntensity={0.3} />
+      </mesh>
+      {/* Left arm */}
+      <group ref={leftArmRef} position={[-0.7, 1.1, 0]}>
+        <mesh castShadow position={[0, -0.28, 0]}>
+          <cylinderGeometry args={[0.18, 0.16, 0.58, 8]} />
+          <meshStandardMaterial color={ironColor} roughness={0.4} metalness={0.8} />
+        </mesh>
+        <mesh castShadow position={[0, -0.64, 0]}>
+          <cylinderGeometry args={[0.16, 0.14, 0.54, 8]} />
+          <meshStandardMaterial color={hotMetal} roughness={0.4} metalness={0.7} emissive="#220800" emissiveIntensity={0.3} />
+        </mesh>
+        <mesh castShadow position={[0, -0.96, 0]}>
+          <sphereGeometry args={[0.16, 8, 8]} />
+          <meshStandardMaterial color={ironColor} roughness={0.4} metalness={0.8} />
+        </mesh>
+      </group>
+      {/* Right arm with hammer */}
+      <group ref={rightArmRef} position={[0.7, 1.1, 0]}>
+        <mesh castShadow position={[0, -0.28, 0]}>
+          <cylinderGeometry args={[0.18, 0.16, 0.58, 8]} />
+          <meshStandardMaterial color={ironColor} roughness={0.4} metalness={0.8} />
+        </mesh>
+        <mesh castShadow position={[0, -0.64, 0]}>
+          <cylinderGeometry args={[0.16, 0.14, 0.54, 8]} />
+          <meshStandardMaterial color={hotMetal} roughness={0.4} metalness={0.7} emissive="#220800" emissiveIntensity={0.3} />
+        </mesh>
+        {/* Hammer handle */}
+        <mesh castShadow position={[0, -1.18, 0]}>
+          <cylinderGeometry args={[0.05, 0.05, 0.7, 6]} />
+          <meshStandardMaterial color="#1a0800" roughness={0.6} metalness={0.6} />
+        </mesh>
+        {/* Hammer head */}
+        <mesh castShadow position={[0, -1.62, 0]}>
+          <boxGeometry args={[0.44, 0.32, 0.28]} />
+          <meshStandardMaterial color={ironColor} roughness={0.3} metalness={0.9} emissive={lavaGlow} emissiveIntensity={0.4} />
+        </mesh>
+      </group>
+      {/* Head */}
+      <mesh castShadow position={[0, 1.76, 0]}>
+        <boxGeometry args={[0.72, 0.62, 0.6]} />
+        <meshStandardMaterial color={ironColor} roughness={0.4} metalness={0.85} />
+      </mesh>
+      {/* Glowing furnace eyes */}
+      <mesh position={[-0.19, 1.82, 0.32]}>
+        <sphereGeometry args={[0.1, 8, 8]} />
+        <meshStandardMaterial color={lavaGlow} emissive={lavaGlow} emissiveIntensity={3} />
+      </mesh>
+      <mesh position={[0.19, 1.82, 0.32]}>
+        <sphereGeometry args={[0.1, 8, 8]} />
+        <meshStandardMaterial color={lavaGlow} emissive={lavaGlow} emissiveIntensity={3} />
+      </mesh>
+      {/* Crown/horns */}
+      {[-0.28, 0, 0.28].map((x, i) => (
+        <mesh key={i} castShadow position={[x, 2.14, 0]} rotation={[0, 0, (i - 1) * 0.3]}>
+          <coneGeometry args={[0.07, 0.38, 5]} />
+          <meshStandardMaterial color={hotMetal} roughness={0.4} metalness={0.7} emissive="#331100" emissiveIntensity={0.5} />
+        </mesh>
+      ))}
+      <pointLight position={[0, 1.3, 0.3]} color={lavaGlow} intensity={1.8} distance={5} />
+    </group>
+  );
+}
+
 export default function Enemy({ enemy }: EnemyProps) {
   const groupRef = useRef<THREE.Group>(null);
   const healthBarRef = useRef<THREE.Mesh>(null);
@@ -630,6 +1002,9 @@ export default function Enemy({ enemy }: EnemyProps) {
   const deathColor = enemy.type === 'demon' ? '#ff2200'
     : enemy.type === 'orc' ? '#88ff44'
     : enemy.type === 'skeleton' ? '#00ffcc'
+    : enemy.type === 'shadow_sovereign' ? '#9900ff'
+    : enemy.type === 'abyssal_leviathan' ? '#00ccff'
+    : enemy.type === 'forge_titan' ? '#ff6600'
     : '#aaffaa';
 
   useFrame((state) => {
@@ -735,6 +1110,9 @@ export default function Enemy({ enemy }: EnemyProps) {
   const typeIndicatorColor = enemy.type === 'demon' ? '#ff2200'
     : enemy.type === 'orc' ? '#ff6600'
     : enemy.type === 'skeleton' ? '#00ffcc'
+    : enemy.type === 'shadow_sovereign' ? '#9900ff'
+    : enemy.type === 'abyssal_leviathan' ? '#00ccff'
+    : enemy.type === 'forge_titan' ? '#ff8800'
     : '#66ff00';
 
   // Health bar width shrinks with health
@@ -757,7 +1135,10 @@ export default function Enemy({ enemy }: EnemyProps) {
       {enemy.type === 'skeleton' && <SkeletonModel isAttacking={isAtk} />}
       {enemy.type === 'orc' && <OrcModel isAttacking={isAtk} />}
       {enemy.type === 'demon' && <DemonModel isAttacking={isAtk} />}
-      {!['zombie', 'skeleton', 'orc', 'demon'].includes(enemy.type) && <ZombieModel isAttacking={isAtk} />}
+      {enemy.type === 'shadow_sovereign' && <ShadowSovereignModel isAttacking={isAtk} />}
+      {enemy.type === 'abyssal_leviathan' && <AbyssalLeviathanModel isAttacking={isAtk} />}
+      {enemy.type === 'forge_titan' && <ForgeTitanModel isAttacking={isAtk} />}
+      {!['zombie', 'skeleton', 'orc', 'demon', 'shadow_sovereign', 'abyssal_leviathan', 'forge_titan'].includes(enemy.type) && <ZombieModel isAttacking={isAtk} />}
 
       {/* ── HEALTH BAR ──────────────────────────────────────────────── */}
       {/* Bar border/shadow */}

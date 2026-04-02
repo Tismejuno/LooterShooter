@@ -249,7 +249,7 @@ export default function StoryPanel({ onClose }: StoryPanelProps) {
                 STORY ARC & AREA PROGRESSION
               </h2>
               <div style={{ color: '#666', fontSize: '11px', marginTop: '2px' }}>
-                Chapter {zones.find(z => z.id === currentZoneId)?.chapter ?? 1} of 7 — Your current zone:{' '}
+                Chapter {zones.find(z => z.id === currentZoneId)?.chapter ?? 1} of 10 — Your current zone:{' '}
                 <span style={{ color: '#cc88ff' }}>
                   {zones.find(z => z.id === currentZoneId)?.name}
                 </span>
