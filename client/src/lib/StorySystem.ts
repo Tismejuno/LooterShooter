@@ -383,6 +383,158 @@ export const STORY_ZONES: StoryZone[] = [
     unlocked: false,
     completed: false,
   },
+  {
+    id: 'zone_shadow',
+    name: 'The Shadowfell',
+    subtitle: 'Chapter VIII — Darkness Incarnate',
+    chapter: 8,
+    biome: 'shadow',
+    requiredLevel: 31,
+    maxLevel: 40,
+    icon: '🌑',
+    bgColor: '#080010',
+    accentColor: '#9944cc',
+    lore:
+      'Beyond the Void Rift, a vast dimension of pure shadow stretches without end. ' +
+      'Here, the Shadow Sovereign Malachar has built an empire of darkness, ' +
+      'hunting the living for sport and weaving their stolen souls into armour of terrible power. ' +
+      'Those who enter rarely cast a shadow again.',
+    bossName: 'Malachar the Shadow Sovereign',
+    bossDescription:
+      'Once a great archmage who sacrificed his physical form to gain dominion over shadow magic, ' +
+      'Malachar exists as a being of living darkness. He can teleport through shadows instantly, ' +
+      'create near-perfect illusions, and drain the life force from victims at range.',
+    missions: [
+      {
+        id: 'shadow_m1',
+        title: 'Into the Dark',
+        description: 'Navigate the lightless maze of the Shadowfell and establish a foothold.',
+        objectives: ['Defeat 25 shadow entities', 'Survive the Void Pulse attack', 'Find the Shadow Nexus'],
+        reward: { gold: 8000, experience: 8000 },
+        completed: false,
+      },
+      {
+        id: 'shadow_m2',
+        title: 'Stealing Light',
+        description: "Malachar steals light from the living world through Soul Lanterns. Extinguish them.",
+        objectives: ['Destroy 5 Soul Lanterns', 'Free 8 captured souls', 'Defeat the Shadow Wardens'],
+        reward: { gold: 14000, experience: 12000, essence: 600, crystals: 80 },
+        completed: false,
+      },
+      {
+        id: 'shadow_m3',
+        title: "The Sovereign's End",
+        description: 'Confront Malachar in his throne of shadow and tear him from the darkness.',
+        objectives: ['Defeat Malachar the Shadow Sovereign'],
+        reward: { gold: 30000, experience: 25000, essence: 1200, crystals: 150 },
+        completed: false,
+      },
+    ],
+    unlocked: false,
+    completed: false,
+  },
+  {
+    id: 'zone_abyss',
+    name: 'The Primordial Abyss',
+    subtitle: 'Chapter IX — Depth Without End',
+    chapter: 9,
+    biome: 'abyss',
+    requiredLevel: 41,
+    maxLevel: 50,
+    icon: '🌊',
+    bgColor: '#000a18',
+    accentColor: '#0077cc',
+    lore:
+      'Far beneath the ocean floor, past the pressure that crushes steel into dust, ' +
+      'lies the Primordial Abyss — a realm of crushing darkness and ancient horrors. ' +
+      'Xerath, a leviathan older than the gods themselves, has awakened and begun ' +
+      'consuming the tectonic plates, threatening to sink every landmass on the continent.',
+    bossName: 'Xerath the Abyssal Leviathan',
+    bossDescription:
+      'An entity of colossal size, Xerath defies comprehension. His body stretches for miles, ' +
+      'his scales resist conventional weapons, and his breath petrifies all living matter. ' +
+      'He is fought in phases — each phase reveals a new, more dangerous form. ' +
+      'His power grows with the depth of the battle.',
+    missions: [
+      {
+        id: 'abyss_m1',
+        title: 'Descent into Pressure',
+        description: 'Dive into the Primordial Abyss and survive the crushing depths.',
+        objectives: ['Reach depth level 5', 'Defeat 30 abyssal creatures', 'Activate the pressure wards'],
+        reward: { gold: 15000, experience: 15000 },
+        completed: false,
+      },
+      {
+        id: 'abyss_m2',
+        title: 'Breaking the Shell',
+        description: "Xerath's armour is formed from the bones of ancient gods. Shatter the outer segments.",
+        objectives: ['Destroy 6 armour segments', 'Survive the Tidal Collapse', 'Defeat the Depth Guardians'],
+        reward: { gold: 25000, experience: 22000, essence: 1000, crystals: 140 },
+        completed: false,
+      },
+      {
+        id: 'abyss_m3',
+        title: 'Slaying the Leviathan',
+        description: 'Strike the exposed heart of Xerath and end the threat from the deep.',
+        objectives: ['Defeat Xerath the Abyssal Leviathan'],
+        reward: { gold: 60000, experience: 50000, essence: 2500, crystals: 280 },
+        completed: false,
+      },
+    ],
+    unlocked: false,
+    completed: false,
+  },
+  {
+    id: 'zone_forge',
+    name: 'The Eternal Forge',
+    subtitle: 'Chapter X — Fire and Iron',
+    chapter: 10,
+    biome: 'forge',
+    requiredLevel: 51,
+    maxLevel: 60,
+    icon: '⚒️',
+    bgColor: '#100808',
+    accentColor: '#dd8800',
+    lore:
+      'At the centre of creation, where the primordial fires that formed the universe still burn, ' +
+      'the Eternal Forge hammers reality itself into new shapes. Vorn the Forge Titan, ' +
+      'a being of living metal and fire, seeks to reforge existence into a perfect, lifeless machine. ' +
+      'If he succeeds, all life will be extinguished and replaced by cold iron.',
+    bossName: 'Vorn the Forge Titan',
+    bossDescription:
+      'Vorn is a colossal being of living ore and primordial fire, thirty feet tall and ' +
+      'wielding hammers the size of buildings. His body absorbs and redirects damage as heat, ' +
+      'making conventional attacks dangerous. He forges new iron constructs mid-battle ' +
+      'and his rage causes reality itself to buckle under the blows of his hammers.',
+    missions: [
+      {
+        id: 'forge_m1',
+        title: 'Into the Crucible',
+        description: 'Enter the Eternal Forge and endure its extreme heat and mechanical guardians.',
+        objectives: ['Survive 5 Forge Surges', 'Defeat 35 iron constructs', 'Reach the Grand Furnace'],
+        reward: { gold: 25000, experience: 25000 },
+        completed: false,
+      },
+      {
+        id: 'forge_m2',
+        title: 'Cooling the Fires',
+        description: "Vorn's power comes from the seven Grand Furnaces. Shut them down.",
+        objectives: ['Shut down 7 Grand Furnaces', 'Defeat the Forge Wardens', 'Avoid the Magma Vents'],
+        reward: { gold: 45000, experience: 40000, essence: 1800, crystals: 250 },
+        completed: false,
+      },
+      {
+        id: 'forge_m3',
+        title: 'Breaking the Titan',
+        description: 'Face Vorn in the heart of the Eternal Forge and shatter him.',
+        objectives: ['Defeat Vorn the Forge Titan'],
+        reward: { gold: 100000, experience: 80000, essence: 5000, crystals: 500 },
+        completed: false,
+      },
+    ],
+    unlocked: false,
+    completed: false,
+  },
 ];
 
 // ─── UTILITY HELPERS ─────────────────────────────────────────────────────────

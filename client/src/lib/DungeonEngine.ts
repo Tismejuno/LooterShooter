@@ -1,6 +1,6 @@
 import { Position, Trap, SpawnPoint } from "./gameTypes";
 
-export type Biome = 'dungeon' | 'grassland' | 'snow' | 'clouds' | 'lava' | 'crystal';
+export type Biome = 'dungeon' | 'grassland' | 'snow' | 'clouds' | 'lava' | 'crystal' | 'shadow' | 'abyss' | 'forge';
 
 export interface Room {
   x: number;
@@ -50,6 +50,9 @@ export class DungeonEngine {
     if (level >= 3) availableBiomes.push('crystal');
     if (level >= 4) availableBiomes.push('lava');
     if (level >= 5) availableBiomes.push('clouds');
+    if (level >= 6) availableBiomes.push('shadow');
+    if (level >= 7) availableBiomes.push('abyss');
+    if (level >= 8) availableBiomes.push('forge');
 
     // Generate main spawn room
     const spawnRoom: Room = {
@@ -165,8 +168,10 @@ export class DungeonEngine {
   }
   
   private static createSpawnPoint(room: Room, level: number, isBoss: boolean): SpawnPoint {
-    const enemyTypes = isBoss ? ['demon'] : ['zombie', 'skeleton', 'orc'];
-    const enemyType = enemyTypes[Math.floor(Math.random() * enemyTypes.length)];
+    const enemyTypes = isBoss
+      ? ['demon', 'shadow_sovereign', 'abyssal_leviathan', 'forge_titan', 'ancient_one']
+      : ['zombie', 'skeleton', 'orc'];
+    const enemyType = enemyTypes[Math.floor(Math.random() * (isBoss ? Math.min(enemyTypes.length, 1 + Math.floor(level / 2)) : enemyTypes.length))];
     
     const offsetX = (Math.random() - 0.5) * room.width * 0.7;
     const offsetZ = (Math.random() - 0.5) * room.height * 0.7;

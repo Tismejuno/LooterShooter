@@ -61,10 +61,32 @@ const ENEMY_TYPES: Record<string, { health: number; damage: number; speed: numbe
   void_entity:     { health: 250, damage: 65, speed: 2.0, experience: 220 },
   void_colossus:   { health: 400, damage: 75, speed: 0.8, experience: 280 },
   reality_shatter: { health: 180, damage: 70, speed: 1.9, experience: 240 },
+  // ── Shadowfell ───────────────────────────────────────────
+  shadow_wraith:   { health: 280, damage: 72, speed: 2.2, experience: 260 },
+  void_stalker:    { health: 220, damage: 68, speed: 2.4, experience: 250 },
+  nightmare_hound: { health: 190, damage: 60, speed: 2.6, experience: 230 },
+  shadow_colossus: { health: 480, damage: 85, speed: 0.9, experience: 340 },
+  soul_harvester:  { health: 310, damage: 78, speed: 1.6, experience: 290 },
+  umbral_knight:   { health: 350, damage: 80, speed: 1.3, experience: 310 },
+  // ── Primordial Abyss ─────────────────────────────────────
+  abyssal_serpent: { health: 360, damage: 88, speed: 1.8, experience: 380 },
+  depth_crawler:   { health: 290, damage: 75, speed: 2.0, experience: 340 },
+  pressure_golem:  { health: 550, damage: 95, speed: 0.6, experience: 450 },
+  tide_horror:     { health: 420, damage: 90, speed: 1.4, experience: 410 },
+  abyssal_warden:  { health: 480, damage: 100, speed: 1.2, experience: 460 },
+  // ── Eternal Forge ────────────────────────────────────────
+  forge_guardian:  { health: 500, damage: 100, speed: 1.1, experience: 520 },
+  molten_dwarf:    { health: 320, damage: 85, speed: 1.7, experience: 440 },
+  iron_sentinel:   { health: 600, damage: 110, speed: 0.8, experience: 560 },
+  titan_colossus:  { health: 750, damage: 120, speed: 0.7, experience: 640 },
+  forge_warden:    { health: 550, damage: 108, speed: 1.0, experience: 580 },
   // ── Generic / Boss stubs ─────────────────────────────────
   orc:             { health: 120, damage: 25, speed: 0.8, experience:  40 },
   demon:           { health: 200, damage: 35, speed: 2.0, experience:  75 },
   ancient_one:     { health:1000, damage: 80, speed: 1.5, experience:1000 },
+  shadow_sovereign:{ health:1500, damage:110, speed: 1.8, experience:2000 },
+  abyssal_leviathan:{ health:2000, damage:130, speed: 1.2, experience:3000 },
+  forge_titan:     { health:2500, damage:150, speed: 1.0, experience:4000 },
 };
 
 // ─── ENEMY POOLS BY BIOME ────────────────────────────────────────────────────
@@ -77,6 +99,9 @@ const BIOME_POOLS: Record<string, string[]> = {
   lava:      ['fire_demon', 'lava_golem', 'ember_sprite', 'magma_brute', 'infernal_knight'],
   clouds:    ['storm_elemental', 'divine_sentinel', 'cloud_serpent', 'angelic_warden'],
   void:      ['void_entity', 'void_colossus', 'reality_shatter'],
+  shadow:    ['shadow_wraith', 'void_stalker', 'nightmare_hound', 'soul_harvester', 'umbral_knight', 'shadow_colossus'],
+  abyss:     ['depth_crawler', 'abyssal_serpent', 'tide_horror', 'abyssal_warden', 'pressure_golem'],
+  forge:     ['molten_dwarf', 'forge_guardian', 'iron_sentinel', 'forge_warden', 'titan_colossus'],
 };
 
 function pickFromPool(pool: string[], playerLevel: number): string {
@@ -88,6 +113,9 @@ function pickFromPool(pool: string[], playerLevel: number): string {
 }
 
 function biomeForLevel(playerLevel: number): string {
+  if (playerLevel >= 51) return 'forge';
+  if (playerLevel >= 41) return 'abyss';
+  if (playerLevel >= 31) return 'shadow';
   if (playerLevel >= 30) return 'void';
   if (playerLevel >= 26) return 'clouds';
   if (playerLevel >= 21) return 'lava';

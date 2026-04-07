@@ -4,6 +4,7 @@ import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { useDungeon } from "../../lib/stores/useDungeon";
 import { Room } from "../../lib/DungeonEngine";
+import { shadowVoidTex, abyssTex, forgeTex } from "../../lib/textures";
 
 // Particle system constants
 const SNOW_SPREAD_XZ = 22;
@@ -473,6 +474,328 @@ function CrystalRoom({ room }: { room: Room }) {
   );
 }
 
+// ─── SHADOW BIOME ─────────────────────────────────────────────────────────────
+
+const SHADOW_PARTICLE_COUNT = 100;
+const SHADOW_SPREAD = 20;
+const SHADOW_HEIGHT = 6;
+
+function ShadowParticles({ cx, cz }: { cx: number; cz: number }) {
+  const positions = useMemo(() => {
+    const arr = new Float32Array(SHADOW_PARTICLE_COUNT * 3);
+    for (let i = 0; i < SHADOW_PARTICLE_COUNT; i++) {
+      arr[i * 3]     = cx + (Math.random() - 0.5) * SHADOW_SPREAD;
+      arr[i * 3 + 1] = Math.random() * SHADOW_HEIGHT;
+      arr[i * 3 + 2] = cz + (Math.random() - 0.5) * SHADOW_SPREAD;
+    }
+    return arr;
+  }, [cx, cz]);
+  const posAttr = useRef<THREE.BufferAttribute>(null);
+  useFrame((state) => {
+    if (!posAttr.current) return;
+    const arr = posAttr.current.array as Float32Array;
+    const t = state.clock.elapsedTime;
+    for (let i = 0; i < SHADOW_PARTICLE_COUNT; i++) {
+      arr[i * 3]     += Math.sin(t * 0.3 + i * 1.1) * 0.007;
+      arr[i * 3 + 1] += Math.sin(t * 0.5 + i * 2.3) * 0.003;
+      arr[i * 3 + 2] += Math.cos(t * 0.25 + i * 1.9) * 0.006;
+      if (arr[i * 3 + 1] > SHADOW_HEIGHT) arr[i * 3 + 1] = 0.1;
+      if (arr[i * 3 + 1] < 0.1) arr[i * 3 + 1] = SHADOW_HEIGHT;
+    }
+    posAttr.current.needsUpdate = true;
+  });
+  return (
+    <points>
+      <bufferGeometry>
+        <bufferAttribute ref={posAttr} attach="attributes-position" args={[positions, 3]} />
+      </bufferGeometry>
+      <pointsMaterial color="#6600cc" size={0.1} transparent opacity={0.6} sizeAttenuation />
+    </points>
+  );
+}
+
+function ShadowObelisk({ position }: { position: [number, number, number] }) {
+  const meshRef = useRef<THREE.Mesh>(null);
+  useFrame((state) => {
+    if (meshRef.current) {
+      (meshRef.current.material as THREE.MeshStandardMaterial).emissiveIntensity =
+        0.3 + Math.sin(state.clock.elapsedTime * 1.2 + position[0]) * 0.2;
+    }
+  });
+  return (
+    <group position={position}>
+      <mesh ref={meshRef} castShadow>
+        <boxGeometry args={[0.4, 2.8, 0.4]} />
+        <meshStandardMaterial color="#0a0010" emissive="#330066" emissiveIntensity={0.3}
+          roughness={0.1} metalness={0.7} />
+      </mesh>
+      <mesh castShadow position={[0, 1.5, 0]}>
+        <coneGeometry args={[0.28, 0.5, 4]} />
+        <meshStandardMaterial color="#110022" emissive="#440088" emissiveIntensity={0.5}
+          roughness={0.05} metalness={0.8} />
+      </mesh>
+      <pointLight position={[0, 1.2, 0]} color="#6600cc" intensity={0.6} distance={5} decay={2} />
+    </group>
+  );
+}
+
+function ShadowRoom({ room }: { room: Room }) {
+  const shadowFloor = useMemo(() => shadowVoidTex(3), []);
+  const obelisks = useMemo<Array<[number, number, number]>>(() =>
+    Array.from({ length: 6 }, (_, i) => {
+      const angle = (i / 6) * Math.PI * 2;
+      const r = room.width * 0.34;
+      return [room.x + Math.cos(angle) * r, 0, room.z + Math.sin(angle) * r] as [number, number, number];
+    }), [room]);
+
+  return (
+    <group>
+      <mesh receiveShadow position={[room.x, -0.45, room.z]} rotation={[-Math.PI / 2, 0, 0]}>
+        <planeGeometry args={[room.width, room.height]} />
+        <meshStandardMaterial map={shadowFloor} color="#080010" roughness={0.8} metalness={0.1} />
+      </mesh>
+      <mesh receiveShadow position={[room.x, -0.43, room.z]} rotation={[-Math.PI / 2, 0, 0]}>
+        <circleGeometry args={[room.width * 0.3, 20]} />
+        <meshStandardMaterial color="#110033" roughness={0.2} metalness={0.6} transparent opacity={0.6} />
+      </mesh>
+      {obelisks.map((pos, i) => <ShadowObelisk key={i} position={pos} />)}
+      <ShadowParticles cx={room.x} cz={room.z} />
+      <pointLight position={[room.x, 4, room.z]} color="#6600cc" intensity={0.9} distance={16} decay={2} />
+      <pointLight position={[room.x, 0.5, room.z]} color="#220044" intensity={0.4} distance={10} decay={2} />
+    </group>
+  );
+}
+
+// ─── ABYSS BIOME ─────────────────────────────────────────────────────────────
+
+const ABYSS_PARTICLE_COUNT = 80;
+const ABYSS_SPREAD = 18;
+
+function BioluminescentParticles({ cx, cz }: { cx: number; cz: number }) {
+  const positions = useMemo(() => {
+    const arr = new Float32Array(ABYSS_PARTICLE_COUNT * 3);
+    for (let i = 0; i < ABYSS_PARTICLE_COUNT; i++) {
+      arr[i * 3]     = cx + (Math.random() - 0.5) * ABYSS_SPREAD;
+      arr[i * 3 + 1] = 0.1 + Math.random() * 3;
+      arr[i * 3 + 2] = cz + (Math.random() - 0.5) * ABYSS_SPREAD;
+    }
+    return arr;
+  }, [cx, cz]);
+  const posAttr = useRef<THREE.BufferAttribute>(null);
+  useFrame((state) => {
+    if (!posAttr.current) return;
+    const arr = posAttr.current.array as Float32Array;
+    const t = state.clock.elapsedTime;
+    for (let i = 0; i < ABYSS_PARTICLE_COUNT; i++) {
+      arr[i * 3]     += Math.sin(t * 0.2 + i * 0.8) * 0.005;
+      arr[i * 3 + 1] += Math.sin(t * 0.4 + i * 1.5) * 0.004;
+      arr[i * 3 + 2] += Math.cos(t * 0.15 + i * 1.2) * 0.005;
+      arr[i * 3 + 1] = Math.max(0.1, Math.min(3, arr[i * 3 + 1]));
+    }
+    posAttr.current.needsUpdate = true;
+  });
+  return (
+    <points>
+      <bufferGeometry>
+        <bufferAttribute ref={posAttr} attach="attributes-position" args={[positions, 3]} />
+      </bufferGeometry>
+      <pointsMaterial color="#00ccff" size={0.1} transparent opacity={0.65} sizeAttenuation />
+    </points>
+  );
+}
+
+function AbyssalColumn({ position, h }: { position: [number, number, number]; h: number }) {
+  const meshRef = useRef<THREE.Mesh>(null);
+  useFrame((state) => {
+    if (meshRef.current) {
+      (meshRef.current.material as THREE.MeshStandardMaterial).emissiveIntensity =
+        0.2 + Math.sin(state.clock.elapsedTime * 0.8 + position[2]) * 0.15;
+    }
+  });
+  return (
+    <mesh ref={meshRef} castShadow position={position}>
+      <cylinderGeometry args={[0.2, 0.25, h, 8]} />
+      <meshStandardMaterial color="#001a2a" emissive="#004466" emissiveIntensity={0.2}
+        roughness={0.6} metalness={0.4} />
+    </mesh>
+  );
+}
+
+function AbyssRoom({ room }: { room: Room }) {
+  const abyssFloor = useMemo(() => abyssTex(3), []);
+  const columns = useMemo<Array<{ pos: [number, number, number]; h: number }>>(() =>
+    Array.from({ length: 8 }, (_, i) => {
+      const angle = (i / 8) * Math.PI * 2;
+      const r = room.width * 0.36;
+      return {
+        pos: [room.x + Math.cos(angle) * r, 0, room.z + Math.sin(angle) * r] as [number, number, number],
+        h: 1.5 + Math.abs(Math.sin(i * 1.3)) * 1.5,
+      };
+    }), [room]);
+
+  return (
+    <group>
+      <mesh receiveShadow position={[room.x, -0.45, room.z]} rotation={[-Math.PI / 2, 0, 0]}>
+        <planeGeometry args={[room.width, room.height]} />
+        <meshStandardMaterial map={abyssFloor} color="#000810" roughness={0.9} metalness={0.05} />
+      </mesh>
+      <mesh receiveShadow position={[room.x, -0.44, room.z]} rotation={[-Math.PI / 2, 0, 0]}>
+        <circleGeometry args={[room.width * 0.28, 24]} />
+        <meshStandardMaterial color="#001428" roughness={0.3} metalness={0.3} transparent opacity={0.8} />
+      </mesh>
+      {/* Bioluminescent coral-like structures */}
+      {columns.map((c, i) => <AbyssalColumn key={i} position={c.pos} h={c.h} />)}
+      <BioluminescentParticles cx={room.x} cz={room.z} />
+      <pointLight position={[room.x, 4, room.z]} color="#0077cc" intensity={0.8} distance={16} decay={2} />
+      <pointLight position={[room.x, 0.3, room.z]} color="#00aacc" intensity={0.5} distance={12} decay={2} />
+    </group>
+  );
+}
+
+// ─── FORGE BIOME ─────────────────────────────────────────────────────────────
+
+const FORGE_SPARK_COUNT = 90;
+const FORGE_SPREAD = 16;
+const FORGE_HEIGHT = 5;
+
+function ForgeSparkParticles({ cx, cz }: { cx: number; cz: number }) {
+  const positions = useMemo(() => {
+    const arr = new Float32Array(FORGE_SPARK_COUNT * 3);
+    for (let i = 0; i < FORGE_SPARK_COUNT; i++) {
+      arr[i * 3]     = cx + (Math.random() - 0.5) * FORGE_SPREAD;
+      arr[i * 3 + 1] = Math.random() * FORGE_HEIGHT;
+      arr[i * 3 + 2] = cz + (Math.random() - 0.5) * FORGE_SPREAD;
+    }
+    return arr;
+  }, [cx, cz]);
+  const posAttr = useRef<THREE.BufferAttribute>(null);
+  useFrame((state) => {
+    if (!posAttr.current) return;
+    const arr = posAttr.current.array as Float32Array;
+    for (let i = 0; i < FORGE_SPARK_COUNT; i++) {
+      arr[i * 3 + 1] += 0.022 * (0.5 + Math.sin(i * 3.1) * 0.4);
+      arr[i * 3]     += (Math.random() - 0.5) * 0.02;
+      arr[i * 3 + 2] += (Math.random() - 0.5) * 0.02;
+      if (arr[i * 3 + 1] > FORGE_HEIGHT) {
+        arr[i * 3 + 1] = 0;
+        arr[i * 3]     = cx + (Math.random() - 0.5) * FORGE_SPREAD;
+        arr[i * 3 + 2] = cz + (Math.random() - 0.5) * FORGE_SPREAD;
+      }
+    }
+    posAttr.current.needsUpdate = true;
+  });
+  return (
+    <points>
+      <bufferGeometry>
+        <bufferAttribute ref={posAttr} attach="attributes-position" args={[positions, 3]} />
+      </bufferGeometry>
+      <pointsMaterial color="#ffaa00" size={0.07} transparent opacity={0.85} sizeAttenuation />
+    </points>
+  );
+}
+
+function ForgePillar({ position }: { position: [number, number, number] }) {
+  const glowRef = useRef<THREE.Mesh>(null);
+  useFrame((state) => {
+    if (glowRef.current) {
+      (glowRef.current.material as THREE.MeshStandardMaterial).emissiveIntensity =
+        0.8 + Math.sin(state.clock.elapsedTime * 2.5 + position[0] * 0.7) * 0.5;
+    }
+  });
+  return (
+    <group position={position}>
+      {/* Iron pillar */}
+      <mesh castShadow position={[0, 1.0, 0]}>
+        <cylinderGeometry args={[0.3, 0.36, 2.0, 8]} />
+        <meshStandardMaterial color="#2a1a10" roughness={0.5} metalness={0.7} />
+      </mesh>
+      {/* Glowing lava channel */}
+      <mesh ref={glowRef} castShadow position={[0, 0.5, 0]}>
+        <cylinderGeometry args={[0.12, 0.12, 1.0, 8]} />
+        <meshStandardMaterial color="#ff4400" emissive="#ff6600" emissiveIntensity={0.8}
+          roughness={0.3} metalness={0.1} />
+      </mesh>
+      {/* Cap */}
+      <mesh castShadow position={[0, 2.1, 0]}>
+        <boxGeometry args={[0.65, 0.2, 0.65]} />
+        <meshStandardMaterial color="#1a0a05" roughness={0.6} metalness={0.8} />
+      </mesh>
+      <pointLight position={[0, 0.5, 0]} color="#ff6600" intensity={0.8} distance={4} decay={2} />
+    </group>
+  );
+}
+
+function LavaCrack({ from, to }: { from: [number, number, number]; to: [number, number, number] }) {
+  const meshRef = useRef<THREE.Mesh>(null);
+  const midX = (from[0] + to[0]) / 2;
+  const midZ = (from[2] + to[2]) / 2;
+  const dx = to[0] - from[0];
+  const dz = to[2] - from[2];
+  const len = Math.sqrt(dx * dx + dz * dz);
+  const angle = Math.atan2(dz, dx);
+  useFrame((state) => {
+    if (meshRef.current) {
+      (meshRef.current.material as THREE.MeshStandardMaterial).emissiveIntensity =
+        0.6 + Math.sin(state.clock.elapsedTime * 3 + midX) * 0.4;
+    }
+  });
+  return (
+    <mesh ref={meshRef} position={[midX, -0.42, midZ]} rotation={[-Math.PI / 2, 0, angle]}>
+      <planeGeometry args={[len, 0.15]} />
+      <meshStandardMaterial color="#cc2200" emissive="#ff4400" emissiveIntensity={0.6}
+        roughness={0.2} transparent opacity={0.9} side={THREE.DoubleSide} />
+    </mesh>
+  );
+}
+
+function ForgeRoom({ room }: { room: Room }) {
+  const forgeFloor = useMemo(() => forgeTex(4), []);
+  const pillars = useMemo<Array<[number, number, number]>>(() =>
+    Array.from({ length: 4 }, (_, i) => {
+      const xSign = i < 2 ? -1 : 1;
+      const zSign = i % 2 === 0 ? -1 : 1;
+      return [
+        room.x + xSign * room.width * 0.3,
+        0,
+        room.z + zSign * room.height * 0.3,
+      ] as [number, number, number];
+    }), [room]);
+
+  const cracks = useMemo(() =>
+    Array.from({ length: 5 }, (_, i) => {
+      const angle = (i / 5) * Math.PI * 2;
+      const r = room.width * 0.2;
+      return {
+        from: [room.x, -0.42, room.z] as [number, number, number],
+        to: [
+          room.x + Math.cos(angle) * r,
+          -0.42,
+          room.z + Math.sin(angle) * r,
+        ] as [number, number, number],
+      };
+    }), [room]);
+
+  return (
+    <group>
+      <mesh receiveShadow position={[room.x, -0.45, room.z]} rotation={[-Math.PI / 2, 0, 0]}>
+        <planeGeometry args={[room.width, room.height]} />
+        <meshStandardMaterial map={forgeFloor} color="#1a0800" roughness={0.7} metalness={0.4} />
+      </mesh>
+      {/* Central forge pit */}
+      <mesh receiveShadow position={[room.x, -0.43, room.z]} rotation={[-Math.PI / 2, 0, 0]}>
+        <circleGeometry args={[room.width * 0.22, 16]} />
+        <meshStandardMaterial color="#cc2200" emissive="#ff4400" emissiveIntensity={0.6}
+          roughness={0.3} transparent opacity={0.9} />
+      </mesh>
+      {cracks.map((c, i) => <LavaCrack key={i} from={c.from} to={c.to} />)}
+      {pillars.map((pos, i) => <ForgePillar key={i} position={pos} />)}
+      <ForgeSparkParticles cx={room.x} cz={room.z} />
+      <pointLight position={[room.x, 2, room.z]} color="#ff6600" intensity={1.4} distance={18} decay={2} />
+      <pointLight position={[room.x, 0.3, room.z]} color="#ff3300" intensity={0.8} distance={10} decay={2} />
+    </group>
+  );
+}
+
 export default function Dungeon() {
   const grassTexture = useTexture("/textures/grass.png");
   const asphaltTexture = useTexture("/textures/asphalt.png");
@@ -530,6 +853,12 @@ export default function Dungeon() {
             return <LavaRoom key={index} room={room} lavaTexture={lavaTexture} />;
           case "crystal":
             return <CrystalRoom key={index} room={room} />;
+          case "shadow":
+            return <ShadowRoom key={index} room={room} />;
+          case "abyss":
+            return <AbyssRoom key={index} room={room} />;
+          case "forge":
+            return <ForgeRoom key={index} room={room} />;
           default:
             return <DungeonRoom key={index} room={room} asphaltTexture={asphaltTexture} woodTexture={woodTexture} woodPlankTexture={woodPlankTexture} sandTexture={sandTexture} />;
         }
