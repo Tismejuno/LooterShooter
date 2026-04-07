@@ -78,6 +78,9 @@ export const woodPlankTex = (repeat = 2) => loadTex("wood_plank.png", repeat);
 /** Radial glow gradient (white → transparent) for aura overlays */
 export const glowGradientTex = () => loadTex("glow_gradient.png", 1);
 
+/** Sandy desert floor – sandy dungeon floors, desert paths */
+export const sandTex = (repeat = 4) => loadTex("sand.png", repeat);
+
 // ─── Procedural canvas textures ──────────────────────────────────────────────
 // These are generated at runtime so no external PNG is required.
 

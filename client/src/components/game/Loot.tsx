@@ -5,7 +5,7 @@ import * as THREE from "three";
 import { LootItem } from "../../lib/gameTypes";
 import {
   metalTex, leatherTex, magicTex, crystalTex,
-  stoneTex, goldTex, runeInscriptionTex,
+  stoneTex, goldTex, runeInscriptionTex, glowGradientTex,
 } from "../../lib/textures";
 
 interface LootProps {
@@ -616,10 +616,10 @@ export default function Loot({ item }: LootProps) {
         <ringGeometry args={[0.28, 0.45, 20]} />
         <meshBasicMaterial color={color} transparent opacity={0.22} side={THREE.DoubleSide} depthWrite={false} />
       </mesh>
-      {/* Inner ground fill */}
+      {/* Inner ground fill – glow gradient for a smooth radial spotlight */}
       <mesh position={[item.position.x, -0.445, item.position.z]} rotation={[-Math.PI / 2, 0, 0]}>
         <circleGeometry args={[0.28, 16]} />
-        <meshBasicMaterial color={color} transparent opacity={0.12} depthWrite={false} />
+        <meshBasicMaterial map={glowGradientTex()} color={color} transparent opacity={0.12} depthWrite={false} />
       </mesh>
 
       {/* Vertical light beam for rare+ items */}
@@ -630,11 +630,11 @@ export default function Loot({ item }: LootProps) {
         </mesh>
       )}
 
-      {/* Aura sphere for epic/legendary */}
+      {/* Aura sphere for epic/legendary – glow gradient gives a soft falloff */}
       {isEpicPlus && (
         <mesh ref={auraRef} position={[item.position.x, item.position.y + 0.4, item.position.z]}>
           <sphereGeometry args={[isLegendary ? 0.75 : 0.6, 14, 14]} />
-          <meshBasicMaterial color={color} transparent opacity={0.09} side={THREE.BackSide} depthWrite={false} />
+          <meshBasicMaterial map={glowGradientTex()} color={color} transparent opacity={0.09} side={THREE.BackSide} depthWrite={false} />
         </mesh>
       )}
 
