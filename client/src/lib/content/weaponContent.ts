@@ -228,6 +228,9 @@ const LEGENDARY_EFFECTS: string[] = [
   "Soul Harvest: kills grant temporary magazine overflow.",
 ];
 
+const DAMAGE_SCALE_PER_LEVEL = 0.06;
+const BASE_PLAYER_LEVEL = 1;
+
 function pickRandom<T>(list: T[]): T {
   return list[Math.floor(Math.random() * list.length)];
 }
@@ -262,7 +265,7 @@ export function generateWeaponRoll(playerLevel: number, forcedRarity?: RarityTie
   const profile = WEAPON_ARCHETYPE_PROFILES[base.archetype];
   const affixCount = rarity === "legendary" ? 3 : rarity === "epic" ? 2 : rarity === "rare" ? 2 : 1;
   const affixes = [...profile.affixPool].sort(() => Math.random() - 0.5).slice(0, affixCount);
-  const levelScalar = 1 + Math.max(0, playerLevel - 1) * 0.06;
+  const levelScalar = 1 + Math.max(0, playerLevel - BASE_PLAYER_LEVEL) * DAMAGE_SCALE_PER_LEVEL;
   const totalDamage = Math.floor(base.baseDamage * rarityMul * levelScalar);
   const legendaryEffect = rarity === "legendary" || base.archetype === "exotic" ? pickRandom(LEGENDARY_EFFECTS) : undefined;
 

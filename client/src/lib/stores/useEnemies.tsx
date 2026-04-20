@@ -107,15 +107,27 @@ const CLASS_RESISTANCE: Record<NonNullable<Enemy["enemyClass"]>, Partial<Record<
   elite: { physical: 0.9, fire: 0.9, ice: 0.9, lightning: 0.95, arcane: 0.95, poison: 0.9 },
   boss: { physical: 0.82, fire: 0.85, ice: 0.85, lightning: 0.85, arcane: 0.85, poison: 0.8 },
 };
+const CLASS_WEAKPOINT: Record<NonNullable<Enemy["enemyClass"]>, { heightOffset: number; bonusMultiplier: number }> = {
+  standard: { heightOffset: 0.9, bonusMultiplier: 1.6 },
+  rusher: { heightOffset: 0.9, bonusMultiplier: 1.6 },
+  shield: { heightOffset: 1.05, bonusMultiplier: 1.6 },
+  artillery: { heightOffset: 0.9, bonusMultiplier: 1.6 },
+  summoner: { heightOffset: 0.9, bonusMultiplier: 1.6 },
+  suppressor: { heightOffset: 0.9, bonusMultiplier: 1.6 },
+  elite: { heightOffset: 0.9, bonusMultiplier: 1.45 },
+  boss: { heightOffset: 1.2, bonusMultiplier: 1.35 },
+};
+
+const ELEMENT_REACTIONS = new Set([
+  "fire:ice", "ice:fire",
+  "lightning:poison", "poison:lightning",
+  "arcane:fire", "arcane:ice",
+]);
 
 function isElementReaction(a?: Enemy["lastElementHit"], b?: Enemy["lastElementHit"]): boolean {
   if (!a || !b || a === b) return false;
   const key = `${a}:${b}`;
-  return [
-    "fire:ice", "ice:fire",
-    "lightning:poison", "poison:lightning",
-    "arcane:fire", "arcane:ice",
-  ].includes(key);
+  return ELEMENT_REACTIONS.has(key);
 }
 
 // ─── ENEMY POOLS BY BIOME ────────────────────────────────────────────────────
@@ -174,10 +186,7 @@ export const useEnemies = create<EnemiesState>((set, get) => ({
       experience: template.experience,
       lastAttackTime: 0,
       resistances: CLASS_RESISTANCE[enemyClass],
-      weakPoint: {
-        heightOffset: enemyClass === "boss" ? 1.2 : enemyClass === "shield" ? 1.05 : 0.9,
-        bonusMultiplier: enemyClass === "boss" ? 1.35 : enemyClass === "elite" ? 1.45 : 1.6,
-      },
+      weakPoint: CLASS_WEAKPOINT[enemyClass],
     };
 
     set((state) => ({ enemies: [...state.enemies, enemy] }));
@@ -201,13 +210,13 @@ export const useEnemies = create<EnemiesState>((set, get) => ({
       const enemies = state.enemies.map((enemy) => {
         if (enemy.id === enemyId) {
           const damageType = payload.damageType ?? "physical";
-          const resistance = enemy.resistances?.[damageType] ?? 1;
+          const damageMultiplier = enemy.resistances?.[damageType] ?? 1;
           const weakPoint = !!payload.hitPosition && !!enemy.weakPoint &&
-            payload.hitPosition.y >= enemy.position.y + enemy.weakPoint.heightOffset;
+            payload.hitPosition.y > enemy.position.y + enemy.weakPoint.heightOffset;
           const reaction = isElementReaction(enemy.lastElementHit, damageType);
           const weakPointMultiplier = weakPoint ? enemy.weakPoint?.bonusMultiplier ?? 1.5 : 1;
           const reactionMultiplier = reaction ? 1.25 : 1;
-          const finalDamage = Math.max(1, Math.floor(payload.damage * resistance * weakPointMultiplier * reactionMultiplier));
+          const finalDamage = Math.max(1, Math.floor(payload.damage * damageMultiplier * weakPointMultiplier * reactionMultiplier));
           const newHealth = Math.max(0, enemy.health - finalDamage);
 
           result = {

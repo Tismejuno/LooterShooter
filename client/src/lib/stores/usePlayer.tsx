@@ -75,6 +75,32 @@ interface PlayerState {
 let projectileIdCounter = 0;
 
 const DEFAULT_WEAPON_PROFILE = WEAPON_ARCHETYPE_PROFILES.assault;
+const ARCHETYPE_MAX_RANGE: Record<NonNullable<LootItem["archetype"]>, number> = {
+  assault: 35,
+  smg: 30,
+  shotgun: 24,
+  sniper: 60,
+  launcher: 38,
+  beam: 42,
+  "melee-hybrid": 10,
+  exotic: 40,
+};
+const ARCHETYPE_DAMAGE_TYPE: Record<NonNullable<LootItem["archetype"]>, Projectile["damageType"]> = {
+  assault: "physical",
+  smg: "physical",
+  shotgun: "physical",
+  sniper: "physical",
+  launcher: "fire",
+  beam: "arcane",
+  "melee-hybrid": "physical",
+  exotic: "arcane",
+};
+const ELEMENT_DAMAGE_TYPE: Record<NonNullable<Projectile["element"]>, Projectile["damageType"]> = {
+  fire: "fire",
+  ice: "ice",
+  lightning: "lightning",
+  arcane: "arcane",
+};
 
 function normalizeDirection(direction: { x: number; y: number; z: number }): { x: number; y: number; z: number } {
   const length = Math.sqrt(direction.x * direction.x + direction.z * direction.z) || 1;
@@ -216,7 +242,13 @@ export const usePlayer = create<PlayerState>((set, get) => ({
     const weaponProfile = equippedWeapon?.weaponProfile ?? DEFAULT_WEAPON_PROFILE;
     const weaponArchetype = equippedWeapon?.archetype ?? DEFAULT_WEAPON_PROFILE.archetype;
 
-    if (now < state.weaponReloadingUntil) return;
+    if (state.weaponReloadingUntil > 0) {
+      if (now < state.weaponReloadingUntil) return;
+      if (state.weaponMagazine === 0) {
+        set({ weaponMagazine: weaponProfile.magazineSize, weaponReloadingUntil: 0 });
+        return;
+      }
+    }
     if (now - state.lastAttackTime < weaponProfile.fireIntervalMs) return;
 
     // Use provided direction, or current aim direction, or fallback forward
@@ -225,7 +257,7 @@ export const usePlayer = create<PlayerState>((set, get) => ({
     if (state.weaponMagazine <= 0) {
       set({
         weaponReloadingUntil: now + weaponProfile.reloadMs,
-        weaponMagazine: weaponProfile.magazineSize,
+        weaponMagazine: 0,
       });
       return;
     }
@@ -241,18 +273,17 @@ export const usePlayer = create<PlayerState>((set, get) => ({
       dotDurationMs: weaponProfile.projectileBehavior.dotDurationMs,
       statusPayload: weaponProfile.projectileBehavior.statusPayload,
       sourceArchetype: weaponArchetype,
-      maxRange: weaponArchetype === "sniper" ? 60 : weaponArchetype === "melee-hybrid" ? 10 : 35,
-      damageType: weaponArchetype === "beam" ? "arcane" : weaponArchetype === "launcher" ? "fire" : "physical",
+      maxRange: ARCHETYPE_MAX_RANGE[weaponArchetype],
+      damageType: ARCHETYPE_DAMAGE_TYPE[weaponArchetype],
     } as const;
 
     const projectileCount =
       weaponArchetype === "shotgun"
         ? Math.max(1, weaponProfile.pelletCount)
-        : weaponArchetype === "melee-hybrid"
+        : weaponArchetype === "melee-hybrid" || weaponProfile.fireMode === "burst"
           ? 3
-          : weaponProfile.fireMode === "burst"
-            ? 3
-            : 1;
+          : 1;
+    const pelletDamageDivisor = weaponArchetype === "shotgun" ? 3 : 1;
 
     const projectiles: Projectile[] = [];
     for (let i = 0; i < projectileCount; i++) {
@@ -264,7 +295,7 @@ export const usePlayer = create<PlayerState>((set, get) => ({
         spawnPosition: { ...state.position },
         direction: fireDirection,
         speed: projectilePayload.speed,
-        damage: Math.max(1, Math.floor(baseDamage / Math.max(1, weaponArchetype === "shotgun" ? 3 : 1))),
+        damage: Math.max(1, Math.floor(baseDamage / Math.max(1, pelletDamageDivisor))),
         active: true,
         damageType: projectilePayload.damageType,
         sourceArchetype: projectilePayload.sourceArchetype,
@@ -294,7 +325,7 @@ export const usePlayer = create<PlayerState>((set, get) => ({
     set((state) => ({
       projectiles: [...state.projectiles, ...projectiles],
       lastAttackTime: now,
-      weaponMagazine: nextMagazine <= 0 ? weaponProfile.magazineSize : nextMagazine,
+      weaponMagazine: nextMagazine <= 0 ? 0 : nextMagazine,
       weaponReloadingUntil: nextMagazine <= 0 ? now + weaponProfile.reloadMs : state.weaponReloadingUntil,
     }));
   },
@@ -331,7 +362,7 @@ export const usePlayer = create<PlayerState>((set, get) => ({
       damage: state.stats.intelligence * 3 + 20,
       active: true,
       element: elements[abilityId],
-      damageType: elements[abilityId] === "fire" ? "fire" : elements[abilityId] === "ice" ? "ice" : "arcane",
+      damageType: elements[abilityId] ? ELEMENT_DAMAGE_TYPE[elements[abilityId]] : "arcane",
       maxRange: 40,
     };
     
@@ -532,7 +563,7 @@ export const usePlayer = create<PlayerState>((set, get) => ({
       damage: spell.damage || 0,
       active: true,
       element,
-      damageType: element === "fire" ? "fire" : element === "ice" ? "ice" : element === "lightning" ? "lightning" : "arcane",
+      damageType: ELEMENT_DAMAGE_TYPE[element ?? "arcane"],
       maxRange: 45,
     };
     

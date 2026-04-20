@@ -12,6 +12,13 @@ interface ProjectileProps {
   projectile: ProjectileType;
 }
 
+const CHAIN_MAX_RANGE = 7;
+
+function calculateSplashDamageFalloff(baseDamage: number, distance: number, radius: number): number {
+  const normalized = Math.max(0, 1 - distance / Math.max(1, radius));
+  return Math.floor(baseDamage * normalized);
+}
+
 const ELEMENT_CONFIG = {
   fire: {
     color: '#ff5500',
@@ -198,7 +205,7 @@ export default function Projectile({ projectile }: ProjectileProps) {
             const dist = Math.sqrt(dx * dx + dz * dz);
             if (dist <= (projectile.splashRadius ?? 0)) {
               applyDamage(enemy.id, {
-                damage: Math.floor(projectile.damage * (1 - dist / Math.max(1, projectile.splashRadius || 1))),
+                damage: calculateSplashDamageFalloff(projectile.damage, dist, projectile.splashRadius ?? 1),
                 damageType: projectile.damageType,
                 hitPosition: enemy.position,
               });
@@ -217,7 +224,7 @@ export default function Projectile({ projectile }: ProjectileProps) {
               const dz = enemy.position.z - newPos.z;
               return { enemy, distance: Math.sqrt(dx * dx + dz * dz) };
             })
-            .filter(({ distance }) => distance <= 7)
+            .filter(({ distance }) => distance <= CHAIN_MAX_RANGE)
             .sort((a, b) => a.distance - b.distance)[0];
 
           if (chainTarget) {
