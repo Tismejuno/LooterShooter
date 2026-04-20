@@ -488,8 +488,14 @@ function calculateValue(type: ItemType, rarity: LootItem['rarity'], stats: Recor
   const base = RARITY_VALUES[rarity].sellValue;
   const statTotal = Object.values(stats).reduce((s, v) => s + v, 0);
   const typeMultiplier: Partial<Record<ItemType, number>> = {
-    artifact: 3, relic: 2.5, accessory: 1.8, offhand: 1.4,
-    gem: 1.6, rune: 1.5, blueprint: 2, ammo: 1.25,
+    accessory: 1.8,
+    ammo: 1.25,
+    artifact: 3,
+    blueprint: 2,
+    gem: 1.6,
+    offhand: 1.4,
+    relic: 2.5,
+    rune: 1.5,
   };
   return Math.floor((base + statTotal * 2) * (typeMultiplier[type] ?? 1));
 }

@@ -615,6 +615,10 @@ export const usePlayer = create<PlayerState>((set, get) => ({
     if (!consumableTypes.includes(item.type)) return;
     
     set((state) => {
+      if (item.type === 'ammo' && !state.equipped.some((eq) => eq.type === "weapon")) {
+        return {};
+      }
+
       const updates: Partial<PlayerState> = {
         inventory: state.inventory.filter(i => i.id !== item.id)
       };
