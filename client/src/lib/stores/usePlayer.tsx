@@ -101,6 +101,9 @@ const ELEMENT_DAMAGE_TYPE: Record<NonNullable<Projectile["element"]>, Projectile
   lightning: "lightning",
   arcane: "arcane",
 };
+const AMMO_POWER_DIVISOR = 6;
+const SPECIAL_AMMO_REFILL_BONUS = 2;
+const MIN_AMMO_REFILL = 1;
 
 function normalizeDirection(direction: { x: number; y: number; z: number }): { x: number; y: number; z: number } {
   const length = Math.sqrt(direction.x * direction.x + direction.z * direction.z) || 1;
@@ -608,10 +611,14 @@ export const usePlayer = create<PlayerState>((set, get) => ({
   },
 
   useConsumable: (item) => {
-    const consumableTypes = ['potion', 'scroll', 'consumable', 'food', 'grenade'];
+    const consumableTypes = ['potion', 'scroll', 'consumable', 'food', 'grenade', 'ammo'];
     if (!consumableTypes.includes(item.type)) return;
     
     set((state) => {
+      if (item.type === 'ammo' && !state.equipped.some((eq) => eq.type === "weapon")) {
+        return {};
+      }
+
       const updates: Partial<PlayerState> = {
         inventory: state.inventory.filter(i => i.id !== item.id)
       };
@@ -644,6 +651,23 @@ export const usePlayer = create<PlayerState>((set, get) => ({
           const ns = { ...state.stats };
           ns.intelligence = Math.min(ns.intelligence + Math.floor(power / 5), ns.intelligence + 20);
           updates.stats = ns;
+          break;
+        }
+        case 'restore_ammo':
+        case 'ammo_armor_piercing':
+        case 'ammo_hollow_point':
+        case 'ammo_incendiary':
+        case 'ammo_cryo':
+        case 'ammo_shock':
+        case 'ammo_scatter':
+        case 'ammo_longshot':
+        case 'ammo_energy': {
+          const equippedWeapon = state.equipped.find((eq) => eq.type === "weapon");
+          const magSize = equippedWeapon?.weaponProfile?.magazineSize ?? DEFAULT_WEAPON_PROFILE.magazineSize;
+          const refillBase = Math.max(MIN_AMMO_REFILL, Math.floor(power / AMMO_POWER_DIVISOR));
+          const refillBonus = item.effect === 'restore_ammo' ? 0 : SPECIAL_AMMO_REFILL_BONUS;
+          updates.weaponMagazine = Math.min(magSize, state.weaponMagazine + refillBase + refillBonus);
+          updates.weaponReloadingUntil = 0;
           break;
         }
         // Grenade and scroll effects — brief projectile / AoE would be handled by game loop

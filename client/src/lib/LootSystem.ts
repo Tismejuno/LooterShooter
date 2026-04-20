@@ -215,6 +215,22 @@ const GRENADES = [
   'Smoke Bomb', 'Holy Grenade', 'Arcane Cluster', 'Void Shard Grenade',
 ];
 
+const AMMO_TYPES = [
+  'Standard Rounds',
+  'Hollow Point Rounds',
+  'Armor-Piercing Rounds',
+  'Incendiary Rounds',
+  'Cryo Rounds',
+  'Shock Shells',
+  'Scatter Shells',
+  'Longshot Cartridges',
+  'Plasma Cells',
+  'Arc Cells',
+  'Void Charges',
+  'Forge-Core Slugs',
+];
+const ENERGY_AMMO_KEYWORDS = ['Plasma', 'Arc', 'Void', 'Forge-Core'];
+
 const GEMS = [
   'Ruby', 'Sapphire', 'Emerald', 'Diamond', 'Topaz',
   'Amethyst', 'Opal', 'Obsidian Gem', 'Pearl', 'Moonstone',
@@ -348,6 +364,17 @@ function deriveEffect(type: ItemType, name: string): string {
     if (name.includes('Holy')) return 'grenade_holy';
     return 'grenade_generic';
   }
+  if (type === 'ammo') {
+    if (name.includes('Armor-Piercing')) return 'ammo_armor_piercing';
+    if (name.includes('Hollow Point')) return 'ammo_hollow_point';
+    if (name.includes('Incendiary')) return 'ammo_incendiary';
+    if (name.includes('Cryo')) return 'ammo_cryo';
+    if (name.includes('Shock')) return 'ammo_shock';
+    if (name.includes('Scatter')) return 'ammo_scatter';
+    if (name.includes('Longshot')) return 'ammo_longshot';
+    if (ENERGY_AMMO_KEYWORDS.some((keyword) => name.includes(keyword))) return 'ammo_energy';
+    return 'restore_ammo';
+  }
   if (type === 'gem') return 'socket_gem';
   if (type === 'rune') return 'enchant_rune';
   if (type === 'material') return 'crafting_material';
@@ -373,6 +400,13 @@ function generateStats(
       if (rarity === 'epic' || rarity === 'legendary') {
         stats.critChance = Math.floor(5 + r() * 10);
         if (r() < 0.5) stats.intelligence = Math.floor((1 + r() * 3) * mul);
+      }
+      break;
+
+    case 'ammo':
+      stats.power = Math.floor((8 + r() * 16) * mul);
+      if (rarity === 'rare' || rarity === 'epic' || rarity === 'legendary') {
+        stats.critChance = Math.floor(2 + r() * 6);
       }
       break;
 
@@ -454,8 +488,14 @@ function calculateValue(type: ItemType, rarity: LootItem['rarity'], stats: Recor
   const base = RARITY_VALUES[rarity].sellValue;
   const statTotal = Object.values(stats).reduce((s, v) => s + v, 0);
   const typeMultiplier: Partial<Record<ItemType, number>> = {
-    artifact: 3, relic: 2.5, accessory: 1.8, offhand: 1.4,
-    gem: 1.6, rune: 1.5, blueprint: 2,
+    accessory: 1.8,
+    ammo: 1.25,
+    artifact: 3,
+    blueprint: 2,
+    gem: 1.6,
+    offhand: 1.4,
+    relic: 2.5,
+    rune: 1.5,
   };
   return Math.floor((base + statTotal * 2) * (typeMultiplier[type] ?? 1));
 }
@@ -493,6 +533,8 @@ function generateItemName(type: ItemType, rarity: LootItem['rarity']): string {
       return SCROLLS[Math.floor(r() * SCROLLS.length)];
     case 'grenade':
       return GRENADES[Math.floor(r() * GRENADES.length)];
+    case 'ammo':
+      return AMMO_TYPES[Math.floor(r() * AMMO_TYPES.length)];
     case 'gem':
       return GEMS[Math.floor(r() * GEMS.length)];
     case 'rune':
@@ -514,6 +556,7 @@ function generateItemName(type: ItemType, rarity: LootItem['rarity']): string {
 
 const ITEM_TYPE_POOL: ItemType[] = [
   'weapon', 'weapon', 'weapon',          // 3× weight
+  'ammo', 'ammo',
   'armor', 'armor', 'armor',
   'potion', 'potion',
   'scroll', 'scroll',
@@ -593,7 +636,7 @@ export class LootSystem {
     }
 
     // Consumables and utility items get an effect tag
-    const consumableTypes: ItemType[] = ['potion', 'scroll', 'food', 'grenade', 'gem', 'rune', 'material', 'blueprint', 'consumable'];
+    const consumableTypes: ItemType[] = ['potion', 'scroll', 'food', 'grenade', 'ammo', 'gem', 'rune', 'material', 'blueprint', 'consumable'];
     if (consumableTypes.includes(type)) {
       item.effect = deriveEffect(type, name);
     }
@@ -650,7 +693,7 @@ export class LootSystem {
   /** Human-readable category label for each item type. */
   static getTypeLabel(type: ItemType): string {
     const labels: Record<ItemType, string> = {
-      weapon: 'Weapon', armor: 'Armor', consumable: 'Consumable',
+      weapon: 'Weapon', ammo: 'Ammo', armor: 'Armor', consumable: 'Consumable',
       potion: 'Potion', scroll: 'Scroll', gem: 'Gem', rune: 'Rune',
       relic: 'Relic', blueprint: 'Blueprint', material: 'Material',
       accessory: 'Accessory', offhand: 'Off-Hand', grenade: 'Grenade',

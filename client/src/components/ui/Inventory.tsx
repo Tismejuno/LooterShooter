@@ -56,7 +56,7 @@ function ItemIcon({ type, rarity }: { type: string; rarity: string }) {
   const emojiIcons: Partial<Record<ItemType, string>> = {
     gem: '💎', rune: '🔤', relic: '🏺', blueprint: '📜',
     material: '🪨', accessory: '💍', offhand: '🔮',
-    grenade: '💣', food: '🍖', artifact: '🌟',
+    grenade: '💣', ammo: '🔸', food: '🍖', artifact: '🌟',
   };
 
   if (emojiIcons[type as ItemType]) {
@@ -255,7 +255,7 @@ function ItemCard({
           💰 {item.value}g
         </div>
       )}
-      {showUse && onUse && (['potion', 'scroll', 'consumable', 'food', 'grenade'].includes(item.type)) && (
+      {showUse && onUse && (['potion', 'scroll', 'consumable', 'food', 'grenade', 'ammo'].includes(item.type)) && (
         <button
           onClick={(e) => { e.stopPropagation(); onUse(); }}
           style={{
@@ -298,7 +298,7 @@ export default function Inventory({ onClose }: InventoryProps) {
     if (activeTab === 'all') return true;
     if (activeTab === 'weapons') return item.type === 'weapon';
     if (activeTab === 'armor') return item.type === 'armor' || item.type === 'accessory' || item.type === 'offhand';
-    if (activeTab === 'consumables') return ['potion', 'scroll', 'consumable', 'food', 'grenade'].includes(item.type);
+    if (activeTab === 'consumables') return ['potion', 'scroll', 'consumable', 'food', 'grenade', 'ammo'].includes(item.type);
     if (activeTab === 'gems') return item.type === 'gem' || item.type === 'rune';
     if (activeTab === 'materials') return ['material', 'blueprint', 'relic', 'artifact'].includes(item.type);
     return true;
