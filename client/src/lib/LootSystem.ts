@@ -229,6 +229,7 @@ const AMMO_TYPES = [
   'Void Charges',
   'Forge-Core Slugs',
 ];
+const ENERGY_AMMO_KEYWORDS = ['Plasma', 'Arc', 'Void', 'Forge-Core'];
 
 const GEMS = [
   'Ruby', 'Sapphire', 'Emerald', 'Diamond', 'Topaz',
@@ -365,10 +366,13 @@ function deriveEffect(type: ItemType, name: string): string {
   }
   if (type === 'ammo') {
     if (name.includes('Armor-Piercing')) return 'ammo_armor_piercing';
+    if (name.includes('Hollow Point')) return 'ammo_hollow_point';
     if (name.includes('Incendiary')) return 'ammo_incendiary';
     if (name.includes('Cryo')) return 'ammo_cryo';
     if (name.includes('Shock')) return 'ammo_shock';
-    if (name.includes('Plasma') || name.includes('Arc') || name.includes('Void') || name.includes('Forge-Core')) return 'ammo_energy';
+    if (name.includes('Scatter')) return 'ammo_scatter';
+    if (name.includes('Longshot')) return 'ammo_longshot';
+    if (ENERGY_AMMO_KEYWORDS.some((keyword) => name.includes(keyword))) return 'ammo_energy';
     return 'restore_ammo';
   }
   if (type === 'gem') return 'socket_gem';
