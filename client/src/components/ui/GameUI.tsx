@@ -194,7 +194,7 @@ export default function GameUI() {
   const [showStory, setShowStory] = useState(false);
   const prevLevel = useRef(1);
 
-  const { phase } = useGame();
+  const { phase, runStage, worldTier, challengeModifiers } = useGame();
   const {
     health,
     maxHealth,
@@ -331,6 +331,19 @@ export default function GameUI() {
             </div>
             <div style={{ color: '#aaa', fontSize: '9px' }}>{zone.name}</div>
           </div>
+        </div>
+
+        <div style={{
+          marginTop: "8px",
+          paddingTop: "8px",
+          borderTop: "1px solid rgba(255,255,255,0.08)",
+          fontSize: "10px",
+          color: "#9bb0ff",
+          lineHeight: 1.5,
+        }}>
+          <div>Run Stage: {runStage.toUpperCase()}</div>
+          <div>World Tier: {worldTier}</div>
+          <div>Challenges: {challengeModifiers.length}</div>
         </div>
       </div>
 

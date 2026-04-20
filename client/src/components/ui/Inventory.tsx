@@ -228,6 +228,21 @@ function ItemCard({
         {item.rarity.charAt(0).toUpperCase() + item.rarity.slice(1)} •{' '}
         {LootSystem.getTypeLabel(item.type as any)}
       </div>
+      {item.archetype && (
+        <div style={{ fontSize: '10px', color: '#66ccff', marginBottom: '4px', fontWeight: 'bold' }}>
+          {item.archetype.toUpperCase()}
+        </div>
+      )}
+      {item.affixes && item.affixes.length > 0 && (
+        <div style={{ fontSize: '9px', color: '#ddb9ff', marginBottom: '4px' }}>
+          {item.affixes.slice(0, 2).map((affix) => `• ${affix}`).join(' ')}
+        </div>
+      )}
+      {item.legendaryEffect && (
+        <div style={{ fontSize: '9px', color: '#ffb35c', marginBottom: '4px' }}>
+          {item.legendaryEffect}
+        </div>
+      )}
       {item.stats && (
         <div style={{ fontSize: '10px', color: '#88ccaa', marginTop: '4px' }}>
           {Object.entries(item.stats).slice(0, 3).map(([stat, value]) => (
