@@ -101,6 +101,8 @@ const ELEMENT_DAMAGE_TYPE: Record<NonNullable<Projectile["element"]>, Projectile
   lightning: "lightning",
   arcane: "arcane",
 };
+const AMMO_POWER_DIVISOR = 6;
+const SPECIAL_AMMO_REFILL_BONUS = 2;
 
 function normalizeDirection(direction: { x: number; y: number; z: number }): { x: number; y: number; z: number } {
   const length = Math.sqrt(direction.x * direction.x + direction.z * direction.z) || 1;
@@ -654,8 +656,8 @@ export const usePlayer = create<PlayerState>((set, get) => ({
         case 'ammo_energy': {
           const equippedWeapon = state.equipped.find((eq) => eq.type === "weapon");
           const magSize = equippedWeapon?.weaponProfile?.magazineSize ?? DEFAULT_WEAPON_PROFILE.magazineSize;
-          const refillBase = Math.max(1, Math.floor(power / 6));
-          const refillBonus = item.effect === 'restore_ammo' ? 0 : 2;
+          const refillBase = Math.max(1, Math.floor(power / AMMO_POWER_DIVISOR));
+          const refillBonus = item.effect === 'restore_ammo' ? 0 : SPECIAL_AMMO_REFILL_BONUS;
           updates.weaponMagazine = Math.min(magSize, state.weaponMagazine + refillBase + refillBonus);
           updates.weaponReloadingUntil = 0;
           break;

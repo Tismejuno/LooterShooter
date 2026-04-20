@@ -401,7 +401,6 @@ function generateStats(
 
     case 'ammo':
       stats.power = Math.floor((8 + r() * 16) * mul);
-      stats.reloadBoost = Math.floor((1 + r() * 4) * mul);
       if (rarity === 'rare' || rarity === 'epic' || rarity === 'legendary') {
         stats.critChance = Math.floor(2 + r() * 6);
       }
