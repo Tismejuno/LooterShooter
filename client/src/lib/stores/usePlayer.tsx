@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { LootItem, Projectile, Position, Stats, Spell, StatusEffect } from "../gameTypes";
+import { WEAPON_ARCHETYPE_PROFILES } from "../content/weaponContent";
 
 interface PlayerState {
   // Basic stats
@@ -38,6 +39,8 @@ interface PlayerState {
   // Combat
   projectiles: Projectile[];
   lastAttackTime: number;
+  weaponMagazine: number;
+  weaponReloadingUntil: number;
   lastAbilityTime: Record<number, number>;
   
   // Aim direction (set by Player component from mouse raycasting)
@@ -49,6 +52,7 @@ interface PlayerState {
   takeDamage: (damage: number) => void;
   gainExperience: (amount: number) => void;
   attack: (direction?: { x: number; y: number; z: number }) => void;
+  getAttackCooldownMs: () => number;
   castAbility: (abilityId: number, direction?: { x: number; y: number; z: number }) => void;
   castSpell: (spellId: string, direction?: { x: number; y: number; z: number }) => void;
   collectItem: (item: LootItem) => void;
@@ -69,6 +73,23 @@ interface PlayerState {
 }
 
 let projectileIdCounter = 0;
+
+const DEFAULT_WEAPON_PROFILE = WEAPON_ARCHETYPE_PROFILES.assault;
+
+function normalizeDirection(direction: { x: number; y: number; z: number }): { x: number; y: number; z: number } {
+  const length = Math.sqrt(direction.x * direction.x + direction.z * direction.z) || 1;
+  return { x: direction.x / length, y: 0, z: direction.z / length };
+}
+
+function applySpread(
+  baseDirection: { x: number; y: number; z: number },
+  spreadAmount: number
+): { x: number; y: number; z: number } {
+  const yaw = Math.atan2(baseDirection.x, baseDirection.z);
+  const jitter = (Math.random() - 0.5) * spreadAmount;
+  const outYaw = yaw + jitter;
+  return { x: Math.sin(outYaw), y: 0, z: Math.cos(outYaw) };
+}
 
 export const usePlayer = create<PlayerState>((set, get) => ({
   // Initial state
@@ -115,6 +136,8 @@ export const usePlayer = create<PlayerState>((set, get) => ({
   statusEffects: [],
   projectiles: [],
   lastAttackTime: 0,
+  weaponMagazine: DEFAULT_WEAPON_PROFILE.magazineSize,
+  weaponReloadingUntil: 0,
   lastAbilityTime: {},
 
   // Default aim forward (-Z)
@@ -179,29 +202,100 @@ export const usePlayer = create<PlayerState>((set, get) => ({
     });
   },
 
+  getAttackCooldownMs: () => {
+    const state = get();
+    const equippedWeapon = state.equipped.find((item) => item.type === "weapon");
+    return equippedWeapon?.weaponProfile?.fireIntervalMs ?? DEFAULT_WEAPON_PROFILE.fireIntervalMs;
+  },
+
   attack: (direction) => {
     const now = Date.now();
     const state = get();
-    
-    if (now - state.lastAttackTime < 500) return; // Attack cooldown
-    
+
+    const equippedWeapon = state.equipped.find((item) => item.type === "weapon");
+    const weaponProfile = equippedWeapon?.weaponProfile ?? DEFAULT_WEAPON_PROFILE;
+    const weaponArchetype = equippedWeapon?.archetype ?? DEFAULT_WEAPON_PROFILE.archetype;
+
+    if (now < state.weaponReloadingUntil) return;
+    if (now - state.lastAttackTime < weaponProfile.fireIntervalMs) return;
+
     // Use provided direction, or current aim direction, or fallback forward
-    const dir = direction || state.aimDirection || { x: 0, y: 0, z: -1 };
-    
-    const projectileId = `projectile_${++projectileIdCounter}`;
-    const projectile: Projectile = {
-      id: projectileId,
-      position: { ...state.position },
-      spawnPosition: { ...state.position },
-      direction: dir,
-      speed: 20,
-      damage: state.stats.strength * 2 + 10,
-      active: true
-    };
-    
+    const baseDir = normalizeDirection(direction || state.aimDirection || { x: 0, y: 0, z: -1 });
+
+    if (state.weaponMagazine <= 0) {
+      set({
+        weaponReloadingUntil: now + weaponProfile.reloadMs,
+        weaponMagazine: weaponProfile.magazineSize,
+      });
+      return;
+    }
+
+    const baseDamage = equippedWeapon?.stats?.weaponDamage ?? (state.stats.strength * 2 + 10);
+    const projectilePayload = {
+      speed: weaponProfile.projectileSpeed,
+      pierce: weaponProfile.projectileBehavior.pierce,
+      chain: weaponProfile.projectileBehavior.chain,
+      ricochet: weaponProfile.projectileBehavior.ricochet,
+      splashRadius: weaponProfile.projectileBehavior.splashRadius,
+      dotPerSecond: weaponProfile.projectileBehavior.dotPerSecond,
+      dotDurationMs: weaponProfile.projectileBehavior.dotDurationMs,
+      statusPayload: weaponProfile.projectileBehavior.statusPayload,
+      sourceArchetype: weaponArchetype,
+      maxRange: weaponArchetype === "sniper" ? 60 : weaponArchetype === "melee-hybrid" ? 10 : 35,
+      damageType: weaponArchetype === "beam" ? "arcane" : weaponArchetype === "launcher" ? "fire" : "physical",
+    } as const;
+
+    const projectileCount =
+      weaponArchetype === "shotgun"
+        ? Math.max(1, weaponProfile.pelletCount)
+        : weaponArchetype === "melee-hybrid"
+          ? 3
+          : weaponProfile.fireMode === "burst"
+            ? 3
+            : 1;
+
+    const projectiles: Projectile[] = [];
+    for (let i = 0; i < projectileCount; i++) {
+      const projectileId = `projectile_${++projectileIdCounter}`;
+      const fireDirection = applySpread(baseDir, weaponProfile.spread);
+      projectiles.push({
+        id: projectileId,
+        position: { ...state.position },
+        spawnPosition: { ...state.position },
+        direction: fireDirection,
+        speed: projectilePayload.speed,
+        damage: Math.max(1, Math.floor(baseDamage / Math.max(1, weaponArchetype === "shotgun" ? 3 : 1))),
+        active: true,
+        damageType: projectilePayload.damageType,
+        sourceArchetype: projectilePayload.sourceArchetype,
+        pierce: projectilePayload.pierce,
+        chain: projectilePayload.chain,
+        ricochet: projectilePayload.ricochet,
+        splashRadius: projectilePayload.splashRadius,
+        dotPerSecond: projectilePayload.dotPerSecond,
+        dotDurationMs: projectilePayload.dotDurationMs,
+        statusPayload: projectilePayload.statusPayload,
+        maxRange: projectilePayload.maxRange,
+      });
+    }
+
+    if (equippedWeapon?.legendaryEffect?.includes("chain")) {
+      projectiles.forEach((p) => {
+        p.chain = (p.chain ?? 0) + 1;
+      });
+    }
+    if (equippedWeapon?.legendaryEffect?.includes("detonation")) {
+      projectiles.forEach((p) => {
+        p.splashRadius = Math.max(2, (p.splashRadius ?? 0) + 1.5);
+      });
+    }
+
+    const nextMagazine = state.weaponMagazine - 1;
     set((state) => ({
-      projectiles: [...state.projectiles, projectile],
-      lastAttackTime: now
+      projectiles: [...state.projectiles, ...projectiles],
+      lastAttackTime: now,
+      weaponMagazine: nextMagazine <= 0 ? weaponProfile.magazineSize : nextMagazine,
+      weaponReloadingUntil: nextMagazine <= 0 ? now + weaponProfile.reloadMs : state.weaponReloadingUntil,
     }));
   },
 
@@ -236,7 +330,9 @@ export const usePlayer = create<PlayerState>((set, get) => ({
       speed: 15,
       damage: state.stats.intelligence * 3 + 20,
       active: true,
-      element: elements[abilityId]
+      element: elements[abilityId],
+      damageType: elements[abilityId] === "fire" ? "fire" : elements[abilityId] === "ice" ? "ice" : "arcane",
+      maxRange: 40,
     };
     
     set((state) => ({
@@ -289,7 +385,9 @@ export const usePlayer = create<PlayerState>((set, get) => ({
       
       return {
         equipped: [...newEquipped, item],
-        stats: newStats
+        stats: newStats,
+        weaponMagazine: item.type === "weapon" ? (item.weaponProfile?.magazineSize ?? DEFAULT_WEAPON_PROFILE.magazineSize) : state.weaponMagazine,
+        weaponReloadingUntil: item.type === "weapon" ? 0 : state.weaponReloadingUntil,
       };
     });
   },
@@ -311,7 +409,9 @@ export const usePlayer = create<PlayerState>((set, get) => ({
       
       return {
         equipped: state.equipped.filter(eq => eq.id !== itemId),
-        stats: newStats
+        stats: newStats,
+        weaponMagazine: item.type === "weapon" ? DEFAULT_WEAPON_PROFILE.magazineSize : state.weaponMagazine,
+        weaponReloadingUntil: item.type === "weapon" ? 0 : state.weaponReloadingUntil,
       };
     });
   },
@@ -431,7 +531,9 @@ export const usePlayer = create<PlayerState>((set, get) => ({
       speed: 15,
       damage: spell.damage || 0,
       active: true,
-      element
+      element,
+      damageType: element === "fire" ? "fire" : element === "ice" ? "ice" : element === "lightning" ? "lightning" : "arcane",
+      maxRange: 45,
     };
     
     set((state) => ({

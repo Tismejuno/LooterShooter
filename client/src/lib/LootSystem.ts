@@ -1,4 +1,6 @@
 import { LootItem, Position, ItemType } from "./gameTypes";
+import { generateWeaponRoll } from "./content/weaponContent";
+import { worldTierForLevel } from "./content/lootTables";
 
 export interface ItemModifier {
   stat: string;
@@ -551,6 +553,45 @@ export class LootSystem {
       value,
     };
 
+    if (type === 'weapon') {
+      const weaponRoll = generateWeaponRoll(playerLevel, rarity);
+      const weaponStats: Record<string, number> = {
+        strength: Math.floor(weaponRoll.totalDamage * 0.45),
+        dexterity: Math.floor(weaponRoll.profile.handling * 12),
+        critChance: Math.floor(5 + weaponRoll.profile.recoil * 4 + weaponRoll.affixes.length * 3),
+        weaponDamage: weaponRoll.totalDamage,
+      };
+
+      item.name = weaponRoll.name;
+      item.stats = weaponStats;
+      item.value = calculateValue(type, rarity, weaponStats) + weaponRoll.affixes.length * 25;
+      item.archetype = weaponRoll.archetype;
+      item.tags = weaponRoll.tags;
+      item.affixes = weaponRoll.affixes;
+      item.legendaryEffect = weaponRoll.legendaryEffect;
+      item.weaponProfile = {
+        fireMode: weaponRoll.profile.fireMode,
+        magazineSize: weaponRoll.profile.magazineSize,
+        reloadMs: weaponRoll.profile.reloadMs,
+        fireIntervalMs: weaponRoll.profile.fireIntervalMs,
+        spread: weaponRoll.profile.spread,
+        recoil: weaponRoll.profile.recoil,
+        handling: weaponRoll.profile.handling,
+        pelletCount: weaponRoll.profile.pelletCount,
+        projectileSpeed: weaponRoll.profile.projectileSpeed,
+        projectileBehavior: {
+          ...weaponRoll.profile.projectileBehavior,
+        },
+      };
+      item.balancing = {
+        itemLevel: playerLevel,
+        worldTier: worldTierForLevel(playerLevel),
+        dpsScore: Math.floor((weaponRoll.totalDamage / Math.max(1, weaponRoll.profile.fireIntervalMs)) * 1000),
+        recoil: weaponRoll.profile.recoil,
+        handling: weaponRoll.profile.handling,
+      };
+    }
+
     // Consumables and utility items get an effect tag
     const consumableTypes: ItemType[] = ['potion', 'scroll', 'food', 'grenade', 'gem', 'rune', 'material', 'blueprint', 'consumable'];
     if (consumableTypes.includes(type)) {
@@ -618,4 +659,3 @@ export class LootSystem {
     return labels[type] ?? type;
   }
 }
-

@@ -6,6 +6,7 @@ import { usePlayer } from "../../lib/stores/usePlayer";
 import { useEnemies } from "../../lib/stores/useEnemies";
 import { useVFX } from "../../lib/stores/useVFX";
 import { checkCollision } from "../../lib/gameUtils";
+import { useTelemetry } from "../../lib/stores/useTelemetry";
 
 interface ProjectileProps {
   projectile: ProjectileType;
@@ -108,13 +109,15 @@ export default function Projectile({ projectile }: ProjectileProps) {
   const outerRef = useRef<THREE.Mesh>(null);
   const lightRef = useRef<THREE.PointLight>(null);
   const { removeProjectile } = usePlayer();
-  const { damageEnemy, enemies } = useEnemies();
+  const { applyDamage, enemies } = useEnemies();
   const { addEffect } = useVFX();
+  const { recordCombatEvent } = useTelemetry();
 
   const element = projectile.element || 'default';
   const config = ELEMENT_CONFIG[element as keyof typeof ELEMENT_CONFIG] || ELEMENT_CONFIG.default;
 
   const hitFiredRef = useRef(false);
+  const piercedTargetsRef = useRef<Set<string>>(new Set());
 
   useFrame((state) => {
     if (meshRef.current && projectile.active) {
@@ -158,21 +161,101 @@ export default function Projectile({ projectile }: ProjectileProps) {
       if (lightRef.current) lightRef.current.position.copy(meshRef.current.position);
 
       // Check collision with enemies
-      enemies.forEach(enemy => {
-        if (checkCollision(newPos, enemy.position, 1)) {
-          if (!hitFiredRef.current) {
-            hitFiredRef.current = true;
-            addEffect({ type: "hit", position: { x: newPos.x, y: newPos.y + 0.5, z: newPos.z }, color: config.vfxColor });
-          }
-          damageEnemy(enemy.id, projectile.damage);
-          removeProjectile(projectile.id);
+      const hitEnemy = enemies.find((enemy) =>
+        !piercedTargetsRef.current.has(enemy.id) && checkCollision(newPos, enemy.position, 1)
+      );
+
+      if (hitEnemy) {
+        const hitResult = applyDamage(hitEnemy.id, {
+          damage: projectile.damage,
+          damageType: projectile.damageType,
+          hitPosition: newPos,
+        });
+        recordCombatEvent({
+          timestamp: Date.now(),
+          damage: hitResult.finalDamage,
+          damageType: projectile.damageType ?? "physical",
+          enemyType: hitEnemy.type,
+          weakPoint: hitResult.weakPoint,
+          killed: hitResult.killed,
+        });
+
+        if (!hitFiredRef.current) {
+          hitFiredRef.current = true;
+          addEffect({
+            type: "hit",
+            position: { x: newPos.x, y: newPos.y + 0.5, z: newPos.z },
+            color: hitResult.weakPoint ? "#ffee88" : config.vfxColor,
+            scale: hitResult.weakPoint ? 1.4 : 1,
+          });
         }
-      });
+
+        if ((projectile.splashRadius ?? 0) > 0.1) {
+          enemies.forEach((enemy) => {
+            if (enemy.id === hitEnemy.id) return;
+            const dx = enemy.position.x - newPos.x;
+            const dz = enemy.position.z - newPos.z;
+            const dist = Math.sqrt(dx * dx + dz * dz);
+            if (dist <= (projectile.splashRadius ?? 0)) {
+              applyDamage(enemy.id, {
+                damage: Math.floor(projectile.damage * (1 - dist / Math.max(1, projectile.splashRadius || 1))),
+                damageType: projectile.damageType,
+                hitPosition: enemy.position,
+              });
+            }
+          });
+          addEffect({ type: "impact", position: newPos, color: config.vfxColor, scale: 1 + (projectile.splashRadius ?? 0) * 0.2 });
+        }
+
+        piercedTargetsRef.current.add(hitEnemy.id);
+
+        if ((projectile.chain ?? 0) > 0) {
+          const chainTarget = enemies
+            .filter((e) => !piercedTargetsRef.current.has(e.id))
+            .map((enemy) => {
+              const dx = enemy.position.x - newPos.x;
+              const dz = enemy.position.z - newPos.z;
+              return { enemy, distance: Math.sqrt(dx * dx + dz * dz) };
+            })
+            .filter(({ distance }) => distance <= 7)
+            .sort((a, b) => a.distance - b.distance)[0];
+
+          if (chainTarget) {
+            const dir = new THREE.Vector3(
+              chainTarget.enemy.position.x - newPos.x,
+              0,
+              chainTarget.enemy.position.z - newPos.z
+            ).normalize();
+            projectile.direction = { x: dir.x, y: 0, z: dir.z };
+            projectile.chain = (projectile.chain ?? 0) - 1;
+            addEffect({ type: "impact", position: newPos, color: "#88ccff", scale: 0.8 });
+            return;
+          }
+        }
+
+        if ((projectile.ricochet ?? 0) > 0) {
+          projectile.direction = {
+            x: -projectile.direction.x + (Math.random() - 0.5) * 0.2,
+            y: projectile.direction.y,
+            z: -projectile.direction.z + (Math.random() - 0.5) * 0.2,
+          };
+          projectile.ricochet = (projectile.ricochet ?? 0) - 1;
+          addEffect({ type: "impact", position: newPos, color: "#ffffff", scale: 0.6 });
+          return;
+        }
+
+        if ((projectile.pierce ?? 0) > 0) {
+          projectile.pierce = (projectile.pierce ?? 0) - 1;
+          return;
+        }
+
+        removeProjectile(projectile.id);
+      }
 
       // Remove projectile if too far
       const dx = newPos.x - projectile.spawnPosition.x;
       const dz = newPos.z - projectile.spawnPosition.z;
-      if (Math.sqrt(dx * dx + dz * dz) > 30) {
+      if (Math.sqrt(dx * dx + dz * dz) > (projectile.maxRange ?? 30)) {
         removeProjectile(projectile.id);
       }
     }

@@ -10,10 +10,6 @@ import { useVFX } from "../../lib/stores/useVFX";
 import { checkCollision } from "../../lib/gameUtils";
 import { metalTex, leatherTex, crystalTex, goldTex } from "../../lib/textures";
 
-// Match the attack cooldown defined in the player store so mouse-held auto-fire
-// doesn't issue more attempts than the store will actually accept.
-const ATTACK_COOLDOWN_MS = 500;
-
 export default function Player() {
   const groupRef = useRef<THREE.Group>(null);
   const headRef = useRef<THREE.Group>(null);
@@ -49,6 +45,7 @@ export default function Player() {
     takeDamage, 
     gainExperience,
     attack,
+    getAttackCooldownMs,
     castAbility,
     collectItem,
     equipped,
@@ -176,7 +173,7 @@ export default function Player() {
       attackTime.current = t;
     }
     // Left mouse auto-fire (rate-limited to match store attack cooldown)
-    if (isMouseDown.current && now - lastAutoFireTime.current > ATTACK_COOLDOWN_MS) {
+    if (isMouseDown.current && now - lastAutoFireTime.current > getAttackCooldownMs()) {
       attack(aimDirObj);
       lastAutoFireTime.current = now;
       isAttacking.current = true;
