@@ -608,7 +608,7 @@ export const usePlayer = create<PlayerState>((set, get) => ({
   },
 
   useConsumable: (item) => {
-    const consumableTypes = ['potion', 'scroll', 'consumable', 'food', 'grenade'];
+    const consumableTypes = ['potion', 'scroll', 'consumable', 'food', 'grenade', 'ammo'];
     if (!consumableTypes.includes(item.type)) return;
     
     set((state) => {
@@ -644,6 +644,20 @@ export const usePlayer = create<PlayerState>((set, get) => ({
           const ns = { ...state.stats };
           ns.intelligence = Math.min(ns.intelligence + Math.floor(power / 5), ns.intelligence + 20);
           updates.stats = ns;
+          break;
+        }
+        case 'restore_ammo':
+        case 'ammo_armor_piercing':
+        case 'ammo_incendiary':
+        case 'ammo_cryo':
+        case 'ammo_shock':
+        case 'ammo_energy': {
+          const equippedWeapon = state.equipped.find((eq) => eq.type === "weapon");
+          const magSize = equippedWeapon?.weaponProfile?.magazineSize ?? DEFAULT_WEAPON_PROFILE.magazineSize;
+          const refillBase = Math.max(1, Math.floor(power / 6));
+          const refillBonus = item.effect === 'restore_ammo' ? 0 : 2;
+          updates.weaponMagazine = Math.min(magSize, state.weaponMagazine + refillBase + refillBonus);
+          updates.weaponReloadingUntil = 0;
           break;
         }
         // Grenade and scroll effects — brief projectile / AoE would be handled by game loop

@@ -190,6 +190,31 @@ function ConsumableModel({ color, emissiveIntensity }: { color: string; emissive
   );
 }
 
+// Ammo model (magazine + rounds)
+function AmmoModel({ color, emissiveIntensity }: { color: string; emissiveIntensity: number }) {
+  return (
+    <group>
+      {/* Magazine body */}
+      <mesh castShadow position={[0, 0.02, 0]}>
+        <boxGeometry args={[0.22, 0.42, 0.1]} />
+        <meshStandardMaterial map={metalTex(1)} color="#4d4d5a" roughness={0.35} metalness={0.8} emissive={color} emissiveIntensity={emissiveIntensity * 0.35} />
+      </mesh>
+      {/* Magazine plate */}
+      <mesh castShadow position={[0, -0.21, 0]}>
+        <boxGeometry args={[0.24, 0.06, 0.12]} />
+        <meshStandardMaterial map={metalTex(1)} color="#2c2c34" roughness={0.4} metalness={0.85} />
+      </mesh>
+      {/* Top rounds */}
+      {[-0.055, 0, 0.055].map((x, i) => (
+        <mesh key={i} castShadow position={[x, 0.24, 0]}>
+          <cylinderGeometry args={[0.018, 0.018, 0.1, 8]} />
+          <meshStandardMaterial map={goldTex()} color="#c99d3a" roughness={0.2} metalness={0.92} emissive={color} emissiveIntensity={emissiveIntensity * 0.25} />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
 // Gem / precious stone model
 function GemModel({ color, emissiveIntensity }: { color: string; emissiveIntensity: number }) {
   return (
@@ -543,6 +568,8 @@ export default function Loot({ item }: LootProps) {
         return <PotionModel color={color} emissiveIntensity={emissiveIntensity} />;
       case 'scroll':
         return <ScrollModel color={color} emissiveIntensity={emissiveIntensity} />;
+      case 'ammo':
+        return <AmmoModel color={color} emissiveIntensity={emissiveIntensity} />;
       case 'rune':
         return <RuneModel color={color} emissiveIntensity={emissiveIntensity} />;
       case 'gem':

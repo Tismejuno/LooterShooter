@@ -32,6 +32,7 @@ export interface Enemy {
 
 export type ItemType =
   | 'weapon'
+  | 'ammo'
   | 'armor'
   | 'consumable'
   | 'potion'

@@ -15,6 +15,7 @@ export interface LootTableRoll {
 const BIOME_LOOT_TABLES: Record<Biome, LootTableEntry[]> = {
   dungeon: [
     { itemType: "weapon", weight: 34 },
+    { itemType: "ammo", weight: 12 },
     { itemType: "armor", weight: 30 },
     { itemType: "potion", weight: 12 },
     { itemType: "scroll", weight: 9 },
@@ -23,6 +24,7 @@ const BIOME_LOOT_TABLES: Record<Biome, LootTableEntry[]> = {
   ],
   grassland: [
     { itemType: "weapon", weight: 33 },
+    { itemType: "ammo", weight: 12 },
     { itemType: "armor", weight: 25 },
     { itemType: "food", weight: 10 },
     { itemType: "potion", weight: 10 },
@@ -31,6 +33,7 @@ const BIOME_LOOT_TABLES: Record<Biome, LootTableEntry[]> = {
   ],
   snow: [
     { itemType: "weapon", weight: 30 },
+    { itemType: "ammo", weight: 11 },
     { itemType: "armor", weight: 30 },
     { itemType: "offhand", weight: 12 },
     { itemType: "scroll", weight: 10 },
@@ -39,6 +42,7 @@ const BIOME_LOOT_TABLES: Record<Biome, LootTableEntry[]> = {
   ],
   clouds: [
     { itemType: "weapon", weight: 31 },
+    { itemType: "ammo", weight: 11 },
     { itemType: "armor", weight: 24 },
     { itemType: "offhand", weight: 12 },
     { itemType: "relic", weight: 9 },
@@ -47,6 +51,7 @@ const BIOME_LOOT_TABLES: Record<Biome, LootTableEntry[]> = {
   ],
   lava: [
     { itemType: "weapon", weight: 36 },
+    { itemType: "ammo", weight: 10 },
     { itemType: "armor", weight: 24 },
     { itemType: "grenade", weight: 11 },
     { itemType: "material", weight: 11 },
@@ -55,6 +60,7 @@ const BIOME_LOOT_TABLES: Record<Biome, LootTableEntry[]> = {
   ],
   crystal: [
     { itemType: "weapon", weight: 28 },
+    { itemType: "ammo", weight: 10 },
     { itemType: "armor", weight: 22 },
     { itemType: "gem", weight: 17 },
     { itemType: "rune", weight: 13 },
@@ -63,6 +69,7 @@ const BIOME_LOOT_TABLES: Record<Biome, LootTableEntry[]> = {
   ],
   shadow: [
     { itemType: "weapon", weight: 35 },
+    { itemType: "ammo", weight: 10 },
     { itemType: "armor", weight: 22 },
     { itemType: "artifact", weight: 8 },
     { itemType: "relic", weight: 12 },
@@ -71,6 +78,7 @@ const BIOME_LOOT_TABLES: Record<Biome, LootTableEntry[]> = {
   ],
   abyss: [
     { itemType: "weapon", weight: 33 },
+    { itemType: "ammo", weight: 10 },
     { itemType: "armor", weight: 23 },
     { itemType: "artifact", weight: 9 },
     { itemType: "relic", weight: 13 },
@@ -79,6 +87,7 @@ const BIOME_LOOT_TABLES: Record<Biome, LootTableEntry[]> = {
   ],
   forge: [
     { itemType: "weapon", weight: 38 },
+    { itemType: "ammo", weight: 11 },
     { itemType: "armor", weight: 24 },
     { itemType: "artifact", weight: 11 },
     { itemType: "blueprint", weight: 12 },
