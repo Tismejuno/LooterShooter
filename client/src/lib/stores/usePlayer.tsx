@@ -651,9 +651,12 @@ export const usePlayer = create<PlayerState>((set, get) => ({
         }
         case 'restore_ammo':
         case 'ammo_armor_piercing':
+        case 'ammo_hollow_point':
         case 'ammo_incendiary':
         case 'ammo_cryo':
         case 'ammo_shock':
+        case 'ammo_scatter':
+        case 'ammo_longshot':
         case 'ammo_energy': {
           const equippedWeapon = state.equipped.find((eq) => eq.type === "weapon");
           const magSize = equippedWeapon?.weaponProfile?.magazineSize ?? DEFAULT_WEAPON_PROFILE.magazineSize;
